@@ -1,4 +1,4 @@
-from re import sub, split, UNICODE
+from re import sub, split, UNICODE, search
 import unidecode
 
 from langid import classify
@@ -12,7 +12,21 @@ fast_spell = FastSpell("en", mode="cons")
 
 
 def lang_poll(text, verbose=0):
+    """
+    function to detect the language of a given text, it uses several libraries to detect the language
+    doing a poll to get the most voted language.
 
+    Parameters:
+    -----------
+    text : str
+        The text to detect the language from.
+    verbose : int
+        The level of verbosity of the function, the higher the number the more verbose the function will be.
+    Returns:
+    --------
+    str
+        The language detected.
+    """
     text = text.lower()
     text = text.replace("\n", "")
     lang_list = []
@@ -84,8 +98,9 @@ def lang_poll(text, verbose=0):
             break
     return lang
 
-def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 'RUA', 'SUS', 'ZEA', 
-                              'ANA','LUZ','SOL','EVA','EMA'],sep=':'):
+
+def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 'RUA', 'SUS', 'ZEA',
+                               'ANA', 'LUZ', 'SOL', 'EVA', 'EMA'], sep=':'):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
@@ -114,23 +129,37 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
     ----
         s='RANGEL MARTINEZ VILLAL ANDRES MAURICIO' # more than 2 last names
         s='ROMANO ANTONIO ENEA' # Foreing → LAST_NAME NAMES
+
+    Parameters:
+    ----------
+    s:str 
+        The full name to be processed.
+    exceptions:list
+        A list of short last names to be considered as exceptions.
+    sep:str
+        The separator to be used to split the names.
+
+    Returns:
+    -------
+    dict
+        A dictionary with the extracted parts of the full name.
     """
     s = s.title()
     exceptions = [e.title() for e in exceptions]
     sl = sub('(\s\w{1,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
-    sl = sub('(\s\w{1,3}%s\w{1,3})\s' %sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
+    sl = sub('(\s\w{1,3}%s\w{1,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
     sl = sub('^(\w{1,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
     # Clean exceptions
     # Extract short names list
     lst = [s for s in split(
-        '(\w{1,3})%s' %sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
+        '(\w{1,3})%s' % sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
     # intersection with exceptions list
     exc = [value for value in exceptions if value in lst]
     if exc:
         for e in exc:
-            sl = sl.replace('{}{}'.format(e,sep), '{} '.format(e))
+            sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
 
-    sll=sl.split()
+    sll = sl.split()
 
     if len(sll) == 2:
         sll = [sl.split()[0]] + [''] + [sl.split()[1]]
@@ -138,21 +167,22 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
     if len(sll) == 3:
         sll = [sl.split()[0]] + [''] + sl.split()[1:]
 
-    
-    d = {'NOMBRES':  [x.replace(sep,' ') for x in sll[:2] if x],
-         'APELLIDOS': [x.replace(sep,' ') for x in sll[2:] if x],
+    d = {'NOMBRES':  [x.replace(sep, ' ') for x in sll[:2] if x],
+         'APELLIDOS': [x.replace(sep, ' ') for x in sll[2:] if x],
          }
     d['INICIALES'] = [x[0]+'.' for x in d['NOMBRES']]
 
-
     return d
+
 
 def dois_processor(doi):
     """
     Process a DOI (Digital Object Identifier) and return a cleaned version.
-    Args:
+    Parameters:
+    ----------
         doi (str): The DOI to be processed.
     Returns:
+    -------
         str or bool: If a valid DOI is found, return the cleaned DOI; otherwise, return False.
     """
     doi_regex = r"\b10\.\d{4,}/[^\s]+"
