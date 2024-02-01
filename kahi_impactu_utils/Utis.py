@@ -132,7 +132,7 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
 
     Parameters:
     ----------
-    s:str 
+    s:str
         The full name to be processed.
     exceptions:list
         A list of short last names to be considered as exceptions.
@@ -167,10 +167,10 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
     if len(sll) == 3:
         sll = [sl.split()[0]] + [''] + sl.split()[1:]
 
-    d = {'NOMBRES':  [x.replace(sep, ' ') for x in sll[:2] if x],
+    d = {'NOMBRES': [x.replace(sep, ' ') for x in sll[:2] if x],
          'APELLIDOS': [x.replace(sep, ' ') for x in sll[2:] if x],
          }
-    d['INICIALES'] = [x[0]+'.' for x in d['NOMBRES']]
+    d['INICIALES'] = [x[0] + '.' for x in d['NOMBRES']]
 
     return d
 
