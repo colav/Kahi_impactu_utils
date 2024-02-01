@@ -1,5 +1,6 @@
-from re import sub, split, UNICODE, search
+from re import sub, split, UNICODE, search, match
 import unidecode
+from datetime import datetime as dt
 
 from langid import classify
 import pycld2 as cld2
@@ -178,27 +179,30 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
 def dois_processor(doi):
     """
     Process a DOI (Digital Object Identifier) and return a cleaned version.
-    Parameters:
-    ----------
+    Args:
         doi (str): The DOI to be processed.
     Returns:
-    -------
         str or bool: If a valid DOI is found, return the cleaned DOI; otherwise, return False.
     """
-    doi_regex = r"\b10\.\d{4,}/[^\s]+"
+    doi_regex = r"\b10\.\d{3,}/[^\s]+"
     match = search(doi_regex, doi)
     if match:
         return match.group().strip().strip('.')
-    doi_candidate = doi.replace(" ", "")
+    doi_candidate = doi.replace(" ", "").strip().strip('.').lower().replace("%2f", "/").replace("doi", "")
     match = search(doi_regex, doi_candidate)
     if match:
-        return match.group().strip().strip('.')
-    if ('http' in doi_candidate or 'www' in doi_candidate) and "10." in doi_candidate:
+        return match.group().strip().strip('.').lower()
+    if ('http' in doi_candidate or 'www' in doi_candidate or 'dx' in doi_candidate) and "10." in doi_candidate:
         doi_candidate = doi_candidate.split("/10")[-1].replace("%2f", "/")
         doi_candidate = "10" + doi_candidate
         match = search(doi_regex, doi_candidate)
         if match:
-            return match.group().strip('.')
+            return match.group().strip('.').lower()
+    if doi_candidate.startswith("0."):
+        doi_candidate = "1" + doi_candidate
+    match = search(doi_regex, doi_candidate)
+    if match:
+        return match.group().strip().strip('.').lower()
     doi_candidate = doi.split("/")
     if doi_candidate[0].endswith('.'):
         doi_candidate[0] = doi_candidate[0].strip('.')
@@ -207,6 +211,52 @@ def dois_processor(doi):
     doi_candidate = '/'.join(doi_candidate)
     match = search(doi_regex, doi_candidate)
     if match:
-        return match.group().strip().strip('.')
+        return match.group().strip().strip('.').lower()
 
     return False
+
+
+def check_date_format(date_str):
+    """
+    Check the format of a date string and return its timestamp if valid.
+
+    Args:
+        date_str (str): A string representing a date.
+
+    Returns:
+        int or str: If the date string matches any of the supported formats,
+            return its timestamp; otherwise, return an empty string.
+
+    Supported date formats:
+        - Weekday, Day Month Year Hour:Minute:Second Timezone (e.g., "Sun, 20 Nov 1994 12:45:30 UTC")
+        - Year-Month-Day Hour:Minute:Second (e.g., "1994-11-20 12:45:30")
+        - Day-Month-Year Hour:Minute:Second (e.g., "20-11-1994 12:45:30")
+        - Year-Month-Day (e.g., "1994-11-20")
+        - Day-Month-Year (e.g., "20-11-1994")
+        - Year-Month (e.g., "1994-11")
+        - Month-Year (e.g., "11-1994")
+    """
+    if date_str is None:
+        return ""
+    wdmyhmsz_format = r"^\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2} \w{3}$"
+    ymdhms_format = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
+    dmyhms_format = r"\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}"
+    ymd_format = r"\d{4}-\d{2}-\d{2}"
+    dmy_format = r"\d{2}-\d{2}-\d{4}"
+    ym_format = r"\d{4}-\d{2}"
+    my_format = r"\d{2}-\d{4}"
+    if match(wdmyhmsz_format, date_str):
+        return int(dt.strptime(date_str, "%a, %d %b %Y %H:%M:%S %Z").timestamp())
+    elif match(ymdhms_format, date_str):
+        return int(dt.strptime(date_str, "%Y-%m-%d %H:%M:%S").timestamp())
+    elif match(dmyhms_format, date_str):
+        return int(dt.strptime(date_str, "%d-%m-%Y %H:%M:%S").timestamp())
+    elif match(ymd_format, date_str):
+        return int(dt.strptime(date_str, "%Y-%m-%d").timestamp())
+    elif match(dmy_format, date_str):
+        return int(dt.strptime(date_str, "%d-%m-%Y").timestamp())
+    elif match(ym_format, date_str):
+        return int(dt.strptime(date_str, "%Y-%m").timestamp())
+    elif match(my_format, date_str):
+        return int(dt.strptime(date_str, "%m-%Y").timestamp())
+    return ""
