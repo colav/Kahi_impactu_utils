@@ -191,7 +191,8 @@ def doi_processor(doi):
     match = search(doi_regex, doi)
     if match:
         return match.group().strip().strip('.').lower()
-    doi_candidate = doi.replace(" ", "").strip().strip('.').lower().replace("%2f", "/").replace("doi", "")
+    doi_candidate = doi.replace(" ", "").strip().strip(
+        '.').lower().replace("%2f", "/").replace("doi", "")
     match = search(doi_regex, doi_candidate)
     if match:
         return match.group().strip().strip('.').lower()
