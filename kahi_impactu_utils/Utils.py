@@ -170,7 +170,8 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
 
     d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
          'surenames': [x.replace(sep, ' ') for x in sll[2:] if x],
-         }
+        }
+    d['full_name'] = ' '.join(d['names'] + d['surenames'])
     d['initials'] = [x[0] + '.' for x in d['names']]
 
     return d
