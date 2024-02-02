@@ -168,26 +168,29 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
     if len(sll) == 3:
         sll = [sl.split()[0]] + [''] + sl.split()[1:]
 
-    d = {'NOMBRES': [x.replace(sep, ' ') for x in sll[:2] if x],
-         'APELLIDOS': [x.replace(sep, ' ') for x in sll[2:] if x],
+    d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
+         'surenames': [x.replace(sep, ' ') for x in sll[2:] if x],
          }
-    d['INICIALES'] = [x[0] + '.' for x in d['NOMBRES']]
+    d['initials'] = [x[0] + '.' for x in d['names']]
 
     return d
 
 
-def dois_processor(doi):
+def doi_processor(doi):
     """
     Process a DOI (Digital Object Identifier) and return a cleaned version.
-    Args:
-        doi (str): The DOI to be processed.
+    Parameters:
+    ----------
+        doi:str
+            The DOI to be processed.
     Returns:
+    -------
         str or bool: If a valid DOI is found, return the cleaned DOI; otherwise, return False.
     """
     doi_regex = r"\b10\.\d{3,}/[^\s]+"
     match = search(doi_regex, doi)
     if match:
-        return match.group().strip().strip('.')
+        return match.group().strip().strip('.').lower()
     doi_candidate = doi.replace(" ", "").strip().strip('.').lower().replace("%2f", "/").replace("doi", "")
     match = search(doi_regex, doi_candidate)
     if match:
@@ -220,10 +223,13 @@ def check_date_format(date_str):
     """
     Check the format of a date string and return its timestamp if valid.
 
-    Args:
-        date_str (str): A string representing a date.
+    Parameters:
+    ----------
+        date_str:str
+            A string representing a date.
 
     Returns:
+    -------
         int or str: If the date string matches any of the supported formats,
             return its timestamp; otherwise, return an empty string.
 

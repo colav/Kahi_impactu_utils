@@ -21,7 +21,35 @@ pip install kahi_impactu_utils
 
 
 # Usage
-**TODO**
+## Split names example
+```python
+from kahi_impactu_utils.Utils import split_names
+
+name = "John Doe"
+names = split_names(name)
+print(names) ## {'names': ['John'], 'surenames': ['Doe'], 'initials': ['J.']}
+```
+
+## Detect language example
+```python
+from kahi_impactu_utils.Utils import lang_poll
+print(lang_poll("Alguna frase en español")) ## returns "es"
+```
+
+## Process DOIs example
+```python
+from kahi_impactu_utils.Utils import doi_processor
+doi = doi_processor("https://doi.org/10.1007/S11192-020-03647-4")
+print(doi) ## returns "10.1007/s11192-020-03647-4"
+```
+
+## Check date format example
+```python
+from kahi_impactu_utils.Utils import check_date_format
+date = "2020-01-01"
+print(check_date_format(date)) ## returns 1577854800  (UTC-5) for this date
+```
+
 
 # License
 BSD-3-Clause License 
