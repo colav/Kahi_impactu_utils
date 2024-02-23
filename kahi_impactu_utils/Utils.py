@@ -1,4 +1,4 @@
-from re import sub, split, UNICODE, search, match
+from re import sub, split, UNICODE, search, match, findall
 import unidecode
 from datetime import datetime as dt
 
@@ -313,7 +313,7 @@ def parse_scholar_id(value):
         The google scholar id
     """
     value = value.replace("authuser", "")
-    value = re.findall(r"user=([^&]{1,12})", value)
+    value = findall(r"user=([^&]{1,12})", value)
     if value:
         value = value[-1]
         if len(value) == 12:
@@ -336,7 +336,7 @@ def parse_researchgate_id(value):
     str
         The researchgate id
     """
-    value = re.search(
+    value = search(
         r"https://www\.researchgate\.net/profile/([^\s/?&]+)", value)
     if value:
         return value.group(1)
@@ -358,7 +358,7 @@ def parse_linkedin_id(value):
     str
         The linkedin id
     """
-    value = re.search(r"linkedin\.com/in/([^/?&]+)", value)
+    value = search(r"linkedin\.com/in/([^/?&]+)", value)
     if value:
         return value.group(1)
     return None
@@ -382,7 +382,7 @@ def parse_orcid_id(value):
     """
     value = value.replace("-", "")
     value = value.replace("_", "")
-    value = re.search(
+    value = search(
         r"(?:ORCID\s?)?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})", value)
     if value:
         return "-".join(value.groups())
@@ -407,7 +407,7 @@ def parse_scopus_id(value):
     """
 
     ##
-    value = re.search(r"(?:authorId=|authorID=)(\d{10,11})", value)
+    value = search(r"(?:authorId=|authorID=)(\d{10,11})", value)
     if value:
         return value.group(1)
     return None
