@@ -84,7 +84,8 @@ def main():
             'pycld2==0.41',
             'langdetect==1.0.7',
             'fastspell==0.8.0',
-            'iso639==0.1.4'
+            'iso639==0.1.4',
+            'unidecode'
         ],
     )
 
