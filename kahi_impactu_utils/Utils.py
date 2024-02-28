@@ -503,7 +503,7 @@ def compare_author(author_id, comparison_name, author_full_name):
         return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'all'}
     elif some(comparison_parts, lambda part: part in full_name_clean, int(len(full_name_parts) / 2)):
         return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'some'}
-    elif any(part in full_name_clean for part in comparison_parts):
-        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'any'}
+    # elif any(part in full_name_clean for part in comparison_parts):
+        # return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'any'}
 
     return False
