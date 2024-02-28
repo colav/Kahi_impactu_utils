@@ -271,7 +271,7 @@ def check_date_format(date_str):
     return ""
 
 
-def get_id_type(url):
+def get_id_type_from_url(url):
     """
     This function returns the type of the id based on the url
 
@@ -297,7 +297,7 @@ def get_id_type(url):
     return None
 
 
-def parse_scholar_id(value):
+def parse_scholar_id_from_url(value):
     """
     Parse the google scholar id from the url,
     the id is the value of the user parameter.
@@ -321,7 +321,7 @@ def parse_scholar_id(value):
     return None
 
 
-def parse_researchgate_id(value):
+def parse_researchgate_id_from_url(value):
     """
     Function to parse the researchgate id from the url,
     it is the value of the profile path in the url
@@ -343,7 +343,7 @@ def parse_researchgate_id(value):
     return None
 
 
-def parse_linkedin_id(value):
+def parse_linkedin_id_from_url(value):
     """
     Function to parse the linkedin id from the url,
     it is the value of the "in" parameter in the url.
@@ -364,7 +364,7 @@ def parse_linkedin_id(value):
     return None
 
 
-def parse_orcid_id(value):
+def parse_orcid_id_from_url(value):
     """
     Function to parse the orcid id from the url,
     it is the value of the orcid parameter in the url.
@@ -389,11 +389,13 @@ def parse_orcid_id(value):
     return None
 
 
-def parse_scopus_id(value):
+def parse_scopus_id_from_url(value):
     """
     Function to parse the scopus id from the url,
     it is the value of the authorID or authorId parameter in the url.
-    **The number of characters have to be 10 or 11 but not more or less.**
+    some of the ids where removed from the scopus web site, but it is still useful to have them.
+    scopus message:
+    "This author profile does not exist or has merged with another author profile. Try to search on another author name."
 
     Parameters:
     ----------
@@ -407,13 +409,13 @@ def parse_scopus_id(value):
     """
 
     ##
-    value = search(r"(?:authorId=|authorID=)(\d{10,11})", value)
+    value = search(r"(?:authorId=|authorID=)(\d+)", value)
     if value:
-        return value.group(1)
+        return f"https://www.scopus.com/authid/detail.uri?authorId={value.group(1)}"
     return None
 
 
-def get_id(value):
+def get_id_from_url(value):
     """
     Function to get the id from the url, it uses the get_id_type function to get the type of the id
     and then uses the corresponding function to parse the id from the url.
@@ -431,16 +433,16 @@ def get_id(value):
     """
     value = unquote(value)
     value = value.replace(" ", "")
-    if get_id_type(value) == "scholar":
-        return parse_scholar_id(value)
-    if get_id_type(value) == "researchgate":
-        return parse_researchgate_id(value)
-    if get_id_type(value) == "linkedin":
-        return parse_linkedin_id(value)
-    if get_id_type(value) == "orcid":
-        return parse_orcid_id(value)
-    if get_id_type(value) == "scopus":
-        return parse_scopus_id(value)
+    if get_id_type_from_url(value) == "scholar":
+        return parse_scholar_id_from_url(value)
+    if get_id_type_from_url(value) == "researchgate":
+        return parse_researchgate_id_from_url(value)
+    if get_id_type_from_url(value) == "linkedin":
+        return parse_linkedin_id_from_url(value)
+    if get_id_type_from_url(value) == "orcid":
+        return parse_orcid_id_from_url(value)
+    if get_id_type_from_url(value) == "scopus":
+        return parse_scopus_id_from_url(value)
 
     return None
 
