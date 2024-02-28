@@ -443,3 +443,67 @@ def get_id(value):
         return parse_scopus_id(value)
 
     return None
+
+
+def compare_author(author_id, comparison_name, author_full_name):
+    """
+    Compares the given author's full name with a comparison name and returns the comparison method used.
+
+    Parameters:
+    ----------
+    author_id : int
+        The ID of the author.
+    comparison_name : str
+        The name to compare with the author's full name.
+    author_full_name : str
+        The full name of the author.
+
+    Returns:
+    ----------
+    dict or bool:
+        A dictionary containing author information and the comparison method used if a match is found,
+        or False if no match is found.
+    """
+
+    def some(iterable, condition, num_required):
+        """
+        Returns True if at least num_required items in the iterable satisfy the condition; otherwise, False.
+
+        Parameters:
+        ----------
+        iterable : iterable
+            The iterable to be checked.
+        condition : function
+            The condition to be satisfied.
+        num_required : int
+            The minimum number of items that need to satisfy the condition.
+
+        Returns:
+        ----------
+        bool:
+            True if num_required items satisfy the condition; otherwise, False.
+        """
+        count = 0
+        for item in iterable:
+            if condition(item):
+                count += 1
+                if count >= num_required:
+                    return True
+        return False
+
+    full_name_clean = unidecode.unidecode(
+        author_full_name.lower()).strip().strip(".").replace("-", " ")
+    comparison_name_clean = unidecode.unidecode(
+        comparison_name.lower()).strip().strip(".").replace("-", " ")
+
+    full_name_parts = full_name_clean.split()
+    comparison_parts = comparison_name_clean.split()
+
+    if all(part in full_name_clean for part in comparison_parts):
+        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'all'}
+    elif some(comparison_parts, lambda part: part in full_name_clean, int(len(full_name_parts) / 2)):
+        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'some'}
+    elif any(part in full_name_clean for part in comparison_parts):
+        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'any'}
+
+    return False
