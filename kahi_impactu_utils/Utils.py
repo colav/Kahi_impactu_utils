@@ -4,9 +4,7 @@ from datetime import datetime as dt
 
 from langid import classify
 import pycld2 as cld2
-from langdetect import DetectorFactory, PROFILES_DIRECTORY
 from fastspell import FastSpell
-from lingua import LanguageDetectorBuilder
 import iso639
 from urllib.parse import unquote
 
@@ -50,20 +48,6 @@ def lang_poll(text, verbose=0):
                 print("Language detection error using cld2")
                 print(e)
 
-    if detected_language:
-        lang_list.append(detected_language[0][-1].lower())
-
-    try:
-        _factory = DetectorFactory()
-        _factory.load_profile(PROFILES_DIRECTORY)
-        detector = _factory.create()
-        detector.append(text)
-        lang_list.append(detector.detect().lower())
-    except Exception as e:
-        if verbose > 4:
-            print("Language detection error using langdetect")
-            print(e)
-
     try:
         result = fast_spell.getlang(text)  # low_memory breaks the function
         lang_list.append(result.lower())
@@ -71,26 +55,6 @@ def lang_poll(text, verbose=0):
         if verbose > 4:
             print("Language detection error using fastSpell")
             print(e)
-
-    detector = LanguageDetectorBuilder.from_all_languages().build()
-    res = detector.detect_language_of(text)
-    if res:
-        if res.name.capitalize() == "Malay":
-            la = "ms"
-        elif res.name.capitalize() == "Sotho":
-            la = "st"
-        elif res.name.capitalize() == "Bokmal":
-            la = "no"
-        elif res.name.capitalize() == "Swahili":
-            la = "sw"
-        elif res.name.capitalize() == "Nynorsk":
-            la = "is"
-        elif res.name.capitalize() == "Slovene":
-            la = "sl"
-        else:
-            la = iso639.find(
-                res.name.capitalize())["iso639_1"].lower()
-        lang_list.append(la)
 
     lang = None
     for prospect in set(lang_list):
