@@ -5,7 +5,6 @@ from datetime import datetime as dt
 from langid import classify
 import pycld2 as cld2
 from fastspell import FastSpell
-import iso639
 from urllib.parse import unquote
 
 fast_spell = FastSpell("en", mode="cons")
