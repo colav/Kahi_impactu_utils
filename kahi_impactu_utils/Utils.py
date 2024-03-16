@@ -207,10 +207,12 @@ def check_date_format(date_str):
         - Day-Month-Year (e.g., "20-11-1994")
         - Year-Month (e.g., "1994-11")
         - Month-Year (e.g., "11-1994")
+        - Year-Month-DayTHour:Minute:Second.Millisecond (e.g., "2011-02-01T00:00:00.000")
     """
     if date_str is None:
         return ""
     wdmyhmsz_format = r"^\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2} \w{3}$"
+    ymdhmsf_format = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}"
     ymdhms_format = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
     dmyhms_format = r"\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}"
     ymd_format = r"\d{4}-\d{2}-\d{2}"
@@ -219,6 +221,8 @@ def check_date_format(date_str):
     my_format = r"\d{2}-\d{4}"
     if match(wdmyhmsz_format, date_str):
         return int(dt.strptime(date_str, "%a, %d %b %Y %H:%M:%S %Z").timestamp())
+    elif match(ymdhmsf_format, date_str):
+        return int(dt.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f").timestamp())
     elif match(ymdhms_format, date_str):
         return int(dt.strptime(date_str, "%Y-%m-%d %H:%M:%S").timestamp())
     elif match(dmyhms_format, date_str):
@@ -461,12 +465,12 @@ def compare_author(author_id, comparison_name, author_full_name):
     comparison_name_clean = unidecode.unidecode(
         comparison_name.lower()).strip().strip(".").replace("-", " ")
 
-    full_name_parts = full_name_clean.split()
+    # full_name_parts = full_name_clean.split()
     comparison_parts = comparison_name_clean.split()
 
     if all(part in full_name_clean for part in comparison_parts):
         return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'all'}
-    elif some(comparison_parts, lambda part: part in full_name_clean, int(len(full_name_parts) / 2)):
+    elif some(comparison_parts, lambda part: part in full_name_clean, 2):
         return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'some'}
     # elif any(part in full_name_clean for part in comparison_parts):
         # return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'any'}
