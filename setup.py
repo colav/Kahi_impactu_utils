@@ -85,7 +85,8 @@ def main():
             'langdetect==1.0.7',
             'fastspell==0.8.0',
             'iso639==0.1.4',
-            'unidecode'
+            'unidecode',
+            'titlecase'
         ],
     )
 
