@@ -1,5 +1,6 @@
 from titlecase import titlecase
 
+
 def abbreviations(word, **kwargs):
     """
     Function to handle abbreviations in the titlecase function
@@ -10,7 +11,7 @@ def abbreviations(word, **kwargs):
         The word to be checked.
     kwargs : dict
         The dictionary with the configuration parameters.
-    
+
     Returns:
     --------
     str
@@ -20,9 +21,10 @@ def abbreviations(word, **kwargs):
         return word.lower()
     if word.upper() in ('EAFIT', 'EIA'):
         return word.upper()
-    if word in ('UdeA','GitHub'):
+    if word in ('UdeA', 'GitHub'):
         return word
     return word.capitalize()
+
 
 def title_case(word):
     """
