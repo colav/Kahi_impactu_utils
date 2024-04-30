@@ -1,6 +1,7 @@
 from titlecase import titlecase
 from bs4 import BeautifulSoup
-from re import sub
+from re import sub, findall
+import html
 
 
 def abbreviations(word, **kwargs):
@@ -63,4 +64,28 @@ def parse_mathml(string):
     if [tag.name for tag in BeautifulSoup(string, 'lxml').find_all() if tag.name.find('math') > -1]:
         string = sub('\n', ' ', BeautifulSoup(
             sub(r"([a-zA-Z])<", r"\1 <", string), 'lxml').text.strip())
+    return string
+
+
+def parse_html(string):
+    """
+    Function to parse the string of a html element,
+    only if html code is found in the string.
+
+    Parameters:
+    -----------
+    string : str
+        The string to be parsed.
+
+    Returns:
+    --------
+    str
+        The parsed title.
+    """
+    if "&lt;" in string:
+        string = html.unescape(string)
+    found = findall(r'<[^>]+>', string)
+    if found:
+        soup = BeautifulSoup(string, 'html.parser')
+        return soup.get_text()
     return string
