@@ -476,3 +476,28 @@ def compare_author(author_id, comparison_name, author_full_name):
         # return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'any'}
 
     return False
+
+
+def parse_sex(sex: str, lang: str = "es") -> str:
+    """
+    Function to normalize sex name
+
+    Parameters:
+    ----------
+    sex:str
+        The sex to be normalized
+
+    Returns:
+    --------
+    str
+        The sex normalized
+    """
+    sex = sex.strip().lower()
+    if sex == "m" or sex == 'masculino':
+        return "Hombre" if lang == "es" else "Men"
+    if sex == "f" or sex == 'femenino':
+        return "Mujer" if lang == "es" else "Woman"
+    if sex == "i" or "intersexual":
+        return "Intersexual"
+    if sex == "l" or "no disponible":
+        return ""
