@@ -499,5 +499,4 @@ def parse_sex(sex: str, lang: str = "es") -> str:
         return "Mujer" if lang == "es" else "Woman"
     if sex == "i" or "intersexual":
         return "Intersexual"
-    if sex == "l" or "no disponible":
-        return ""
+    return ""
