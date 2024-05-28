@@ -79,12 +79,12 @@ def main():
 
         # Dependent packages (distributions)
         install_requires=[
-            'langid==1.1.6',
-            'lingua-language-detector==1.3.3',
-            'pycld2==0.41',
-            'langdetect==1.0.7',
-            'fastspell==0.8.0',
-            'iso639==0.1.4',
+            'langid~=1.1.6',
+            'lingua-language-detector~=1.3.3',
+            'pycld2~=0.41',
+            'langdetect~=1.0.7',
+            'fastspell~=0.8.0',
+            'iso639~=0.1.4',
             'unidecode',
             'titlecase'
         ],
