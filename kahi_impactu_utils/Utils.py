@@ -261,6 +261,12 @@ def get_id_type_from_url(url):
         return "scholar"
     if "scopus" in url:
         return "scopus"
+    if "publons" in url:
+        return "wos"
+    if "webofscience" in url:
+        return "wos"
+    if "ssrn" in url:
+        return "ssrn"
     return None
 
 
@@ -284,7 +290,7 @@ def parse_scholar_id_from_url(value):
     if value:
         value = value[-1]
         if len(value) == 12:
-            return value
+            return "https://scholar.google.com/citations?user=" + value
     return None
 
 
@@ -306,7 +312,7 @@ def parse_researchgate_id_from_url(value):
     value = search(
         r"https://www\.researchgate\.net/profile/([^\s/?&]+)", value)
     if value:
-        return value.group(1)
+        return "https://www.researchgate.net/profile/" + value.group(1)
     return None
 
 
@@ -327,7 +333,7 @@ def parse_linkedin_id_from_url(value):
     """
     value = search(r"linkedin\.com/in/([^/?&]+)", value)
     if value:
-        return value.group(1)
+        return "https://www.linkedin.com/in/" + value.group(1)
     return None
 
 
@@ -347,12 +353,11 @@ def parse_orcid_id_from_url(value):
     str
         The orcid id
     """
-    value = value.replace("-", "")
-    value = value.replace("_", "")
+    value = value.replace("-", "").replace("_", "").replace(" ", "")
     value = search(
         r"(?:ORCID\s?)?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})", value)
     if value:
-        return "-".join(value.groups())
+        return "https://orcid.org/" + "-".join(value.groups())
     return None
 
 
@@ -374,11 +379,56 @@ def parse_scopus_id_from_url(value):
     str
         The scopus id
     """
-
-    ##
     value = search(r"(?:authorId=|authorID=)(\d+)", value)
     if value:
         return f"https://www.scopus.com/authid/detail.uri?authorId={value.group(1)}"
+    return None
+
+
+def parse_ssrn_id_from_url(value):
+    """
+    Function to parse the ssrn id from the url,
+    it is the value of the profile path in the url
+
+    Parameters:
+    ----------
+    value: str
+        The url of the web of ssrn profile
+
+    Returns:
+    --------
+    str
+        The ssrn id
+    """
+    value = search(r'(?:per_id|partid|partID|author)=([\d]+)', value)
+    if value:
+        return "https://papers.ssrn.com/sol3/cf_dev/AbsByAuth.cfm?per_id=" + value.group(1)
+    return None
+
+
+def parse_wos_id_from_url(value):
+    """
+    Function to parse the wos id from the url,
+    it is the value of the profile path in the url
+
+    Parameters:
+    ----------
+    value: str
+        The url of the web of science profile
+
+    Returns:
+    --------
+    str
+        The wos id
+    """
+    if "publons" in value:
+        _value = search(r'/(\d+)/', value)
+        if _value:
+            return _value.group(1)
+    if "webofscience" in value:
+        _value = search(r'/(\d+)', value)
+        if _value:
+            return "https://www.webofscience.com/wos/author/record/" + _value.group(1)
     return None
 
 
@@ -410,6 +460,10 @@ def get_id_from_url(value):
         return parse_orcid_id_from_url(value)
     if get_id_type_from_url(value) == "scopus":
         return parse_scopus_id_from_url(value)
+    if get_id_type_from_url(value) == "wos":
+        return parse_wos_id_from_url(value)
+    if get_id_type_from_url(value) == "ssrn":
+        return parse_ssrn_id_from_url(value)
 
     return None
 
