@@ -468,43 +468,71 @@ def get_id_from_url(value):
     return None
 
 
-def compare_author(author_id, comparison_name, author_full_name):
+def compare_author(author_id, name1: str, name2: str):
     """
-    Compares the given author's full name with a comparison name and returns the comparison method used.
+    Function to compare two author names, normalizing them by removing accents and punctuation,
+    and checking if they match based on specific criteria.
 
     Parameters:
-    ----------
-    author_id : int
-        The ID of the author.
-    comparison_name : str
-        The name to compare with the author's full name.
-    author_full_name : str
-        The full name of the author.
+    -----------
+    author_id : any
+        The identifier of the author.
+    name1 : str
+        The first author name to compare.
+    name2 : str
+        The second author name to compare.
 
     Returns:
-    ----------
-    dict or bool:
-        A dictionary containing author information and the comparison method used if a match is found,
-        or False if no match is found.
+    --------
+    dict or bool
+        If names match, returns a dictionary containing the full author name, author id, and the method used ('all' or 'some').
+        If names don't match, returns False.
     """
+
+    def analyze_names(name1: str, name2: str) -> dict:
+        """
+        Splits and compares two names to determine the full and comparison names.
+
+        Parameters:
+        -----------
+        name1 : str
+            The first name to analyze.
+        name2 : str
+            The second name to analyze.
+
+        Returns:
+        --------
+        dict
+            A dictionary with 'full_name' and 'comparison_name'.
+        """
+        name1_split, name2_split = name1.split(), name2.split()
+        if len(name1_split) == len(name2_split):
+            full_name, comparison_name = name1_split, name2_split
+        else:
+            full_name, comparison_name = (name1_split, name2_split) if len(name1_split) > len(name2_split) else (name2_split, name1_split)
+
+        return {
+            'full_name': full_name,
+            'comparison_name': comparison_name
+        }
 
     def some(iterable, condition, num_required):
         """
-        Returns True if at least num_required items in the iterable satisfy the condition; otherwise, False.
+        Checks if a condition is met for at least a certain number of items in an iterable.
 
         Parameters:
-        ----------
+        -----------
         iterable : iterable
-            The iterable to be checked.
+            The iterable to check.
         condition : function
-            The condition to be satisfied.
+            A function that returns a boolean, used to check each item.
         num_required : int
-            The minimum number of items that need to satisfy the condition.
+            The number of items that need to satisfy the condition.
 
         Returns:
-        ----------
-        bool:
-            True if num_required items satisfy the condition; otherwise, False.
+        --------
+        bool
+            True if the condition is met for the required number of items, False otherwise.
         """
         count = 0
         for item in iterable:
@@ -514,21 +542,29 @@ def compare_author(author_id, comparison_name, author_full_name):
                     return True
         return False
 
-    full_name_clean = unidecode.unidecode(
-        author_full_name.lower()).strip().strip(".").replace("-", " ")
-    comparison_name_clean = unidecode.unidecode(
-        comparison_name.lower()).strip().strip(".").replace("-", " ")
+    # Normalize and clean the names by removing accents, punctuation, and converting to lower case
+    name1_clean = unidecode.unidecode(
+        name1.lower()).strip().strip(".").replace("-", " ").replace(".", " ")
+    name2_clean = unidecode.unidecode(
+        name2.lower()).strip().strip(".").replace("-", " ").replace(".", " ")
 
-    # full_name_parts = full_name_clean.split()
-    comparison_parts = comparison_name_clean.split()
+    # Analyze the cleaned names to determine the full name and comparison name
+    names = analyze_names(name1_clean, name2_clean)
 
-    if all(part in full_name_clean for part in comparison_parts):
-        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'all'}
-    elif some(comparison_parts, lambda part: part in full_name_clean, 2):
-        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'some'}
-    # elif any(part in full_name_clean for part in comparison_parts):
-        # return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'any'}
+    comparison_name = names["comparison_name"]
+    author_full_name = names["full_name"]
 
+    # Determine the number of parts required for a match
+    num_required = len(comparison_name) if len(comparison_name) <= 3 else len(author_full_name) - 1
+
+    # Check if all parts of the comparison name are in the full name
+    if all(part in author_full_name for part in comparison_name):
+        return {'author_full_name': ' '.join(part for part in author_full_name), 'author_id': author_id, 'method': 'all'}
+    # Check if some parts of the comparison name are in the full name, based on num_required
+    elif some(comparison_name, lambda part: part in author_full_name, num_required):
+        return {'author_full_name': ' '.join(part for part in author_full_name), 'author_id': author_id, 'method': 'some'}
+
+    # Return False if no match is found
     return False
 
 
