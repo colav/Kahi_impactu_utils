@@ -509,7 +509,7 @@ def compare_author(author_id, name1: str, name2: str):
         if len(name1_split) == len(name2_split):
             full_name, comparison_name = name1_split, name2_split
         else:
-            full_name, comparison_name = (name1_split, name2_split) if len(name1_split) > len(name2_split) else (name2_split, name1_split)
+            full_name, comparison_name = (name1_split, name2_split) if len(name1_split) > len(name2_split) else (name2_split, name1_split)  # noqa: E501
 
         return {
             'full_name': full_name,
