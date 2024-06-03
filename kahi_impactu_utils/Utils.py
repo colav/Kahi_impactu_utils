@@ -509,20 +509,20 @@ def compare_author(author1: dict, author2: dict):
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            if normalize_name(author1["first_names"][0]) == normalize_name(author2_names["first_names"][0]) and normalize_name(author1["last_names"][0]) == normalize_name(author2_names["last_names"][0]):
+            if normalize_name(author1["first_names"][0]) == normalize_name(author2_names["names"][0]) and normalize_name(author1["last_names"][0]) == normalize_name(author2_names["surenames"][0]):
                 return True
             else:
                 return False
     else:
         author1_names = split_names(author1["full_name"])
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
-            if normalize_name(author1_names["first_names"][0]) == normalize_name(author2["first_names"][0]) and normalize_name(author1_names["last_names"][0]) == normalize_name(author2["last_names"][0]):
+            if normalize_name(author1_names["names"][0]) == normalize_name(author2["first_names"][0]) and normalize_name(author1_names["surenames"][0]) == normalize_name(author2["last_names"][0]):
                 return True
             else:
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            if normalize_name(author1_names["first_names"][0]) == normalize_name(author2_names["first_names"][0]) and normalize_name(author1_names["last_names"][0]) == normalize_name(author2_names["last_names"][0]):
+            if normalize_name(author1_names["names"][0]) == normalize_name(author2_names["names"][0]) and normalize_name(author1_names["surenames"][0]) == normalize_name(author2_names["surenames"][0]):
                 return True
             else:
                 return False
