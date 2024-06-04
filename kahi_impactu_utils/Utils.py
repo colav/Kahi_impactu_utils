@@ -64,7 +64,7 @@ def lang_poll(text, verbose=0):
     return lang
 
 
-def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'],sep=':'):
+def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':'):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
