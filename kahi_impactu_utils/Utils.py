@@ -119,7 +119,6 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         '(\w{1,3})%s' % sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
     # intersection with connectors list
     exc = [value for value in lst if value not in connectors]
-    
     if exc:
         for e in exc:
             sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
@@ -133,8 +132,8 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         if not foreign:
             sll = [sl.split()[0]] + [''] + sl.split()[1:]
         else:
-            sll = sl.split()[:2] + [sl.split()[2]] + [''] 
-    
+            sll = sl.split()[:2] + [sl.split()[2]] + ['']
+
     d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
          'surenames': [x.replace(sep, ' ') for x in sll[2:] if x],
          }
