@@ -64,7 +64,7 @@ def lang_poll(text, verbose=0):
     return lang
 
 
-def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':'):
+def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', foreign=False):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
@@ -73,7 +73,7 @@ def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':'):
     * If len(s) == 2 → Foreign name assumed with single last name on it
     * If len(s) == 3 → Colombian name assumed two last mames and one first name
 
-    Add connectors like to `connectors` list if necessary
+    Add connectors, like 'DE', to `connectors` list if necessary
 
     Works with:
     ----
@@ -118,7 +118,7 @@ def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':'):
     lst = [s for s in split(
         '(\w{1,3})%s' % sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
     # intersection with connectors list
-    exc = [value for value in connectors if value not in lst]
+    exc = [value for value in lst if value not in connectors]
     if exc:
         for e in exc:
             sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
@@ -129,7 +129,10 @@ def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':'):
         sll = [sl.split()[0]] + [''] + [sl.split()[1]]
 
     if len(sll) == 3:
-        sll = [sl.split()[0]] + [''] + sl.split()[1:]
+        if not foreign:
+            sll = [sl.split()[0]] + [''] + sl.split()[1:]
+        else:
+            sll = sl.split()[:2] + [sl.split()[2]] + ['']
 
     d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
          'surenames': [x.replace(sep, ' ') for x in sll[2:] if x],
