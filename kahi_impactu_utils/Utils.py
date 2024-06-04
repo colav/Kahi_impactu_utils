@@ -130,7 +130,6 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         sll = [sl.split()[0]] + [''] + [sl.split()[1]]
 
     if len(sll) == 3:
-        if 
         sll = [sl.split()[0]] + [''] + sl.split()[1:]
 
     d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
