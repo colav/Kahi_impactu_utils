@@ -64,7 +64,7 @@ def lang_poll(text, verbose=0):
     return lang
 
 
-def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', foreign = False):
+def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', foreign=False):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
@@ -130,8 +130,11 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         sll = [sl.split()[0]] + [''] + [sl.split()[1]]
 
     if len(sll) == 3:
-        sll = [sl.split()[0]] + [''] + sl.split()[1:]
-
+        if not foreign:
+            sll = [sl.split()[0]] + [''] + sl.split()[1:]
+        else:
+            sll = sl.split()[:2] + [sl.split()[2]] + [''] 
+    
     d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
          'surenames': [x.replace(sep, ' ') for x in sll[2:] if x],
          }
