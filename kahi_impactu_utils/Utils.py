@@ -64,7 +64,7 @@ def lang_poll(text, verbose=0):
     return lang
 
 
-def split_names(s, connectors=['DEL','LA','EL','JR','JR.'],sep=':'):
+def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'],sep=':'):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
@@ -116,7 +116,7 @@ def split_names(s, connectors=['DEL','LA','EL','JR','JR.'],sep=':'):
     # Clean connectors
     # Extract short names list
     lst = [s for s in split(
-        '(\w{1,3})%s' %sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
+        '(\w{1,3})%s' % sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
     # intersection with connectors list
     exc = [value for value in connectors if value not in lst]
     if exc:
