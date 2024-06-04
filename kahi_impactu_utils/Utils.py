@@ -64,8 +64,7 @@ def lang_poll(text, verbose=0):
     return lang
 
 
-def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 'RUA', 'SUS', 'ZEA',
-                               'ANA', 'LUZ', 'SOL', 'EVA', 'EMA'], sep=':'):
+def split_names(s, connectors=['DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':'):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
@@ -74,7 +73,7 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
     * If len(s) == 2 → Foreign name assumed with single last name on it
     * If len(s) == 3 → Colombian name assumed two last mames and one first name
 
-    Add short last names to `exceptions` list if necessary
+    Add connectors like to `connectors` list if necessary
 
     Works with:
     ----
@@ -110,16 +109,16 @@ def split_names(s, exceptions=['GIL', 'LEW', 'LIZ', 'PAZ', 'REY', 'RIO', 'ROA', 
         A dictionary with the extracted parts of the full name.
     """
     s = s.title()
-    exceptions = [e.title() for e in exceptions]
+    connectors = [e.title() for e in connectors]
     sl = sub('(\s\w{1,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
     sl = sub('(\s\w{1,3}%s\w{1,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
     sl = sub('^(\w{1,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
-    # Clean exceptions
+    # Clean connectors
     # Extract short names list
     lst = [s for s in split(
         '(\w{1,3})%s' % sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
-    # intersection with exceptions list
-    exc = [value for value in exceptions if value in lst]
+    # intersection with connectors list
+    exc = [value for value in connectors if value not in lst]
     if exc:
         for e in exc:
             sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
