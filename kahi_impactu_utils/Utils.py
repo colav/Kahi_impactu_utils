@@ -98,10 +98,12 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     ----------
     s:str
         The full name to be processed.
-    exceptions:list
-        A list of short last names to be considered as exceptions.
+    connectors:list
+        A list of connectors between names which are assumed to be at least of length 2.
     sep:str
         The separator to be used to split the names.
+    foreign:boolean
+        True if only there are one last name in the name
 
     Returns:
     -------
@@ -109,10 +111,11 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         A dictionary with the extracted parts of the full name.
     """
     s = s.title()
+    s = sub('\s\w\.*\s', ' ', s) # Remove middle initials
     connectors = [e.title() for e in connectors]
-    sl = sub('(\s\w{1,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
-    sl = sub('(\s\w{1,3}%s\w{1,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
-    sl = sub('^(\w{1,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
+    sl = sub('(\s\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
+    sl = sub('(\s\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
+    sl = sub('^(\w{2,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
     # Clean connectors
     # Extract short names list
     lst = [s for s in split(
@@ -141,7 +144,6 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     d['initials'] = [x[0] + '.' for x in d['names']]
 
     return d
-
 
 def doi_processor(doi):
     """
