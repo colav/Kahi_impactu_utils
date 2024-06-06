@@ -68,7 +68,7 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
-    [SMALL_CONECTORS] FIRST_LAST_NAME [SMALL_CONECTORS] [SECOND_LAST_NAME] NAMES
+    NAMES [SMALL_CONECTORS] FIRST_LAST_NAME [SMALL_CONECTORS] [SECOND_LAST_NAME]
 
     * If len(s) == 2 → Foreign name assumed with single last name on it
     * If len(s) == 3 → Colombian name assumed two last mames and one first name
@@ -470,68 +470,80 @@ def get_id_from_url(value):
     return None
 
 
-def compare_author(author_id, comparison_name, author_full_name):
+def normalize_name(name):
     """
-    Compares the given author's full name with a comparison name and returns the comparison method used.
+    Simple function for unidecode names only to do comparison between them, NOT TO BE SAVED IN RECORDS.
 
     Parameters:
     ----------
-    author_id : int
-        The ID of the author.
-    comparison_name : str
-        The name to compare with the author's full name.
-    author_full_name : str
-        The full name of the author.
+    name:str
+        The name to be normalized
 
     Returns:
-    ----------
-    dict or bool:
-        A dictionary containing author information and the comparison method used if a match is found,
-        or False if no match is found.
+    --------
+    str
+        The normalized name
     """
+    return str(unidecode.unidecode(name).encode("ascii", "ignore"))
 
-    def some(iterable, condition, num_required):
-        """
-        Returns True if at least num_required items in the iterable satisfy the condition; otherwise, False.
 
-        Parameters:
-        ----------
-        iterable : iterable
-            The iterable to be checked.
-        condition : function
-            The condition to be satisfied.
-        num_required : int
-            The minimum number of items that need to satisfy the condition.
+def compare_author(author1: dict, author2: dict):
+    """
+    Function to compare two authors, the comparison is done by comparing the first and last name of the authors.
 
-        Returns:
-        ----------
-        bool:
-            True if num_required items satisfy the condition; otherwise, False.
-        """
-        count = 0
-        for item in iterable:
-            if condition(item):
-                count += 1
-                if count >= num_required:
-                    return True
-        return False
+    Parameters
+    ----------
+    author1 : dict
+        Author 1 (kahi record)
+    author2 : dict
+        Author 2 (kahi record)
 
-    full_name_clean = unidecode.unidecode(
-        author_full_name.lower()).strip().strip(".").replace("-", " ")
-    comparison_name_clean = unidecode.unidecode(
-        comparison_name.lower()).strip().strip(".").replace("-", " ")
-
-    # full_name_parts = full_name_clean.split()
-    comparison_parts = comparison_name_clean.split()
-
-    if all(part in full_name_clean for part in comparison_parts):
-        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'all'}
-    elif some(comparison_parts, lambda part: part in full_name_clean, 2):
-        return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'some'}
-    # elif any(part in full_name_clean for part in comparison_parts):
-        # return {'author_full_name': author_full_name, 'author_id': author_id, 'method': 'any'}
-
-    return False
+    Returns
+    -------
+    bool
+        True if the authors are the same, False otherwise.
+    """
+    if len(author1["first_names"]) > 0 and len(author1["last_names"]) > 0:
+        if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
+            if normalize_name(
+                author1["first_names"][0]) == normalize_name(
+                    author2["first_names"][0]) and normalize_name(
+                        author1["last_names"][0]) == normalize_name(
+                            author2["last_names"][0]):
+                return True
+            else:
+                return False
+        else:
+            author2_names = split_names(author2["full_name"])
+            if normalize_name(
+                author1["first_names"][0]) == normalize_name(
+                    author2_names["names"][0]) and normalize_name(
+                        author1["last_names"][0]) == normalize_name(
+                            author2_names["surenames"][0]):
+                return True
+            else:
+                return False
+    else:
+        author1_names = split_names(author1["full_name"])
+        if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
+            if normalize_name(
+                author1_names["names"][0]) == normalize_name(
+                    author2["first_names"][0]) and normalize_name(
+                        author1_names["surenames"][0]) == normalize_name(
+                            author2["last_names"][0]):
+                return True
+            else:
+                return False
+        else:
+            author2_names = split_names(author2["full_name"])
+            if normalize_name(
+                author1_names["names"][0]) == normalize_name(
+                    author2_names["names"][0]) and normalize_name(
+                        author1_names["surenames"][0]) == normalize_name(
+                            author2_names["surenames"][0]):
+                return True
+            else:
+                return False
 
 
 def parse_sex(sex: str, lang: str = "es") -> str:
