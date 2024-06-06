@@ -490,6 +490,24 @@ def normalize_name(name):
     return str(unidecode.unidecode(name).encode("ascii", "ignore")).lower()
 
 
+def normalize_names(names):
+    """
+    Function to normalize names in a loop using normalize_name function
+
+    Parameters:
+    ----------
+    names:list
+        The names to be normalized
+
+    Returns:
+    --------
+    list
+        The normalized names
+
+    """
+    return [normalize_name(name) for name in names]
+
+
 def compare_author(author1: dict, author2: dict):
     """
     Function to compare two authors, the comparison is done by comparing the first and last name of the authors.
@@ -508,42 +526,43 @@ def compare_author(author1: dict, author2: dict):
     """
     if len(author1["first_names"]) > 0 and len(author1["last_names"]) > 0:
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
-            if normalize_name(
-                author1["first_names"][0]) == normalize_name(
-                    author2["first_names"][0]) and normalize_name(
-                        author1["last_names"][0]) == normalize_name(
-                            author2["last_names"][0]):
+            name_found = set(normalize_names(author1["first_names"])).intersection(
+                normalize_names(author2["first_names"]))
+            if name_found and normalize_name(
+                    author1["last_names"][0]) == normalize_name(
+                    author2["last_names"][0]):
                 return True
             else:
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            if normalize_name(
-                author1["first_names"][0]) == normalize_name(
-                    author2_names["names"][0]) and normalize_name(
-                        author1["last_names"][0]) == normalize_name(
-                            author2_names["surenames"][0]):
+            name_found = set(normalize_names(author1["first_names"])).intersection(
+                normalize_names(author2_names["names"]))
+            if name_found and normalize_name(
+                    author1["last_names"][0]) == normalize_name(
+                    author2_names["surenames"][0]):
                 return True
             else:
                 return False
     else:
         author1_names = split_names(author1["full_name"])
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
-            if normalize_name(
-                author1_names["names"][0]) == normalize_name(
-                    author2["first_names"][0]) and normalize_name(
-                        author1_names["surenames"][0]) == normalize_name(
-                            author2["last_names"][0]):
+            name_found = set(normalize_names(author1_names["names"])).intersection(
+                normalize_names(author2["first_names"]))
+            if name_found and normalize_name(
+                    author1_names["surenames"][0]) == normalize_name(
+                    author2["last_names"][0]):
                 return True
             else:
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            if normalize_name(
-                author1_names["names"][0]) == normalize_name(
-                    author2_names["names"][0]) and normalize_name(
-                        author1_names["surenames"][0]) == normalize_name(
-                            author2_names["surenames"][0]):
+            name_found = set(normalize_names(author1_names["names"])).intersection(
+                normalize_names(author2_names["names"]))
+
+            if name_found and normalize_name(
+                    author1_names["surenames"][0]) == normalize_name(
+                    author2_names["surenames"][0]):
                 return True
             else:
                 return False
