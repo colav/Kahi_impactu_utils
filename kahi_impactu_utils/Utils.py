@@ -487,7 +487,7 @@ def normalize_name(name):
     str
         The normalized name
     """
-    return str(unidecode.unidecode(name).encode("ascii", "ignore"))
+    return str(unidecode.unidecode(name).encode("ascii", "ignore")).lower()
 
 
 def compare_author(author1: dict, author2: dict):
