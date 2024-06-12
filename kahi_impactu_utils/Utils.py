@@ -426,11 +426,7 @@ def parse_wos_id_from_url(value):
     str
         The wos id
     """
-    if "publons" in value:
-        _value = search(r'/(\d+)/', value)
-        if _value:
-            return _value.group(1)
-    if "webofscience" in value:
+    if "webofscience" in value or "publons" in value:
         _value = search(r'/(\d+)', value)
         if _value:
             return "https://www.webofscience.com/wos/author/record/" + _value.group(1)
