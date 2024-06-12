@@ -116,10 +116,8 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         A dictionary with the extracted parts of the full name.
     """
     s = s.title()
-    s = sub(r'\s*\-\s*','-',s) # hyphenation without space
-    #if s.find('-') == -1:
-    if True:
-        s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s)) # Remove until 3 middle initials
+    s = sub(r'\s*\-\s*', '-', s)  # hyphenation without space
+    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s)) # Remove until 3 middle initials
     connectors = [e.title() for e in connectors]
     sl = sub('([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
     sl = sub('([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
