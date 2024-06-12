@@ -117,7 +117,7 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     """
     s = s.title()
     s = sub(r'\s*\-\s*', '-', s)  # hyphenation without space
-    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s)) # Remove until 3 middle initials
+    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))  # Remove until 3 middle initials
     connectors = [e.title() for e in connectors]
     sl = sub('([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
     sl = sub('([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
@@ -132,11 +132,10 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     if exc:
         for e in exc:
             sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
-            
-    if sl.find('-') and len(sl.split()) == 3:
-        sl = sl.replace('-',' ')
-
     
+    if sl.find('-') and len(sl.split()) == 3:
+        sl = sl.replace('-', ' ')
+
     sll = sl.split()
 
     if len(sll) == 1:
