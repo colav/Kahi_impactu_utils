@@ -117,7 +117,8 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     """
     s = s.title()
     s = sub(r'\s*\-\s*', '-', s)  # hyphenation without space
-    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))  # Remove until 3 middle initials
+    # Remove until 3 middle initials
+    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))
     connectors = [e.title() for e in connectors]
     sl = sub('([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
     sl = sub('([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
@@ -286,7 +287,7 @@ def get_id_type_from_url(url):
     if "scopus" in url:
         return "scopus"
     if "publons" in url:
-        return "wos"
+        return "publons"
     if "webofscience" in url:
         return "wos"
     if "ssrn" in url:
@@ -445,10 +446,33 @@ def parse_wos_id_from_url(value):
     str
         The wos id
     """
-    if "webofscience" in value or "publons" in value:
+    if "webofscience" in value:
         _value = search(r'/(\d+)', value)
         if _value:
             return "https://www.webofscience.com/wos/author/record/" + _value.group(1)
+    return None
+
+
+def parse_publons_id_from_url(value):
+    """
+    Function to parse the wos id from the url,
+    it is the value of the profile path in the url
+    NOTE: publons redirects to the wos profile, but it is a different id
+
+    Parameters:
+    ----------
+    value: str
+        The url of the publons profile
+
+    Returns:
+    --------
+    str
+        The publons id
+    """
+    if "publons" in value:
+        _value = search(r'/(\d+)', value)
+        if _value:
+            return "https://publons.com/researcher/" + _value.group(1)
     return None
 
 
@@ -482,6 +506,9 @@ def get_id_from_url(value):
         return parse_scopus_id_from_url(value)
     if get_id_type_from_url(value) == "wos":
         return parse_wos_id_from_url(value)
+    # this is different that wos id, to do unicity redirect to wos have to be solved
+    if get_id_type_from_url(value) == "publons":
+        return parse_publons_id_from_url(value)
     if get_id_type_from_url(value) == "ssrn":
         return parse_ssrn_id_from_url(value)
 
