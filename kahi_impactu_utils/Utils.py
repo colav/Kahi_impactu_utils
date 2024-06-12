@@ -132,7 +132,7 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     if exc:
         for e in exc:
             sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
-    
+
     if sl.find('-') and len(sl.split()) == 3:
         sl = sl.replace('-', ' ')
 
