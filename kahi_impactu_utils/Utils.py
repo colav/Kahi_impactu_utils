@@ -64,6 +64,10 @@ def lang_poll(text, verbose=0):
     return lang
 
 
+def flatten(xss):
+    return [x for xs in xss for x in xs]
+
+
 def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', foreign=False):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
@@ -93,6 +97,7 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     ----
         s='RANGEL MARTINEZ VILLAL ANDRES MAURICIO' # more than 2 last names
         s='ROMANO ANTONIO ENEA' # Foreing → LAST_NAME NAMES
+        s='Ramón Fernandez de la Vara-Prieto'
 
     Parameters:
     ----------
@@ -111,11 +116,15 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         A dictionary with the extracted parts of the full name.
     """
     s = s.title()
-    s = sub(r'\s\w\.*\s', ' ', s)  # Remove middle initials
+    s = sub(r'\s*\-\s*','-',s) # hyphenation without space
+    #if s.find('-') == -1:
+    if True:
+        s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s)) # Remove until 3 middle initials
     connectors = [e.title() for e in connectors]
-    sl = sub('(\s\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
-    sl = sub('(\s\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
+    sl = sub('([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
+    sl = sub('([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
     sl = sub('^(\w{2,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
+
     # Clean connectors
     # Extract short names list
     lst = [s for s in split(
@@ -125,13 +134,20 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     if exc:
         for e in exc:
             sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
+            
+    if sl.find('-') and len(sl.split()) == 3:
+        sl = sl.replace('-',' ')
 
+    
     sll = sl.split()
 
-    if len(sll) == 2:
+    if len(sll) == 1:
+        sll = [''] + [''] + [sl.split()[0]]
+
+    elif len(sll) == 2:
         sll = [sl.split()[0]] + [''] + [sl.split()[1]]
 
-    if len(sll) == 3:
+    elif len(sll) == 3:
         if not foreign:
             sll = [sl.split()[0]] + [''] + sl.split()[1:]
         else:
@@ -140,6 +156,12 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
          'surenames': [x.replace(sep, ' ') for x in sll[2:] if x],
          }
+
+    if any([x.find('-') > -1 for x in d['names']]):
+        d['names'] = flatten([x.split('-') for x in d['names']])
+    if any([x.find('-') > -1 for x in d['surenames']]):
+        d['surenames'] = flatten([x.split('-') for x in d['surenames']])
+
     d['full_name'] = ' '.join(d['names'] + d['surenames'])
     d['initials'] = [x[0] + '.' for x in d['names']]
 
