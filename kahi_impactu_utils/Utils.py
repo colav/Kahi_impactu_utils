@@ -529,7 +529,7 @@ def normalize_name(name):
     str
         The normalized name
     """
-    return str(unidecode.unidecode(name).encode("ascii", "ignore")).lower()
+    return str(unidecode.unidecode(name).encode("ascii", "ignore")).lower().strip()
 
 
 def normalize_names(names):
@@ -550,7 +550,7 @@ def normalize_names(names):
     return [normalize_name(name) for name in names]
 
 
-def compare_authors_initials(initials1:str, last_name1:str, initials2:str, last_name2:str):
+def compare_authors_initials(initials1: str, last_name1: str, initials2: str, last_name2: str):
     """
     Function to compare two authors by their initials and last name
 
@@ -577,6 +577,7 @@ def compare_authors_initials(initials1:str, last_name1:str, initials2:str, last_
         return True
     return False
 
+
 def compare_author(author1: dict, author2: dict):
     """
     Function to compare two authors, the comparison is done by comparing the first and last name of the authors.
@@ -593,6 +594,8 @@ def compare_author(author1: dict, author2: dict):
     bool
         True if the authors are the same, False otherwise.
     """
+    if normalize_name(author1["full_name"]) == normalize_name(author2["full_name"]):
+        return True
     if len(author1["first_names"]) > 0 and len(author1["last_names"]) > 0:
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
             name_found = set(normalize_names(author1["first_names"])).intersection(
@@ -602,7 +605,7 @@ def compare_author(author1: dict, author2: dict):
                     author2["last_names"][0]):
                 return True
             else:
-                if compare_authors_initials(author1["initials"], author1["last_names"][0], author2["initials"],author2["last_names"][0]):
+                if compare_authors_initials(author1["initials"], author1["last_names"][0], author2["initials"], author2["last_names"][0]):
                     return True
                 return False
         else:
@@ -615,7 +618,7 @@ def compare_author(author1: dict, author2: dict):
                         author2_names["surenames"][0]):
                     return True
                 else:
-                    if compare_authors_initials(author1["initials"], author1["last_names"][0], author2_names["initials"],author2_names["surenames"][0]):
+                    if compare_authors_initials(author1["initials"], author1["last_names"][0], author2_names["initials"], author2_names["surenames"][0]):
                         return True
                     return False
             return False
