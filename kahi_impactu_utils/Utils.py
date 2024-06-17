@@ -604,6 +604,36 @@ def compare_authors_initials(initials1: str, last_name1: str, initials2: str, la
     return False
 
 
+def compare_authors_ids(author1: dict, author2: dict, verbose=4):
+    """
+    Function to compare two authors by their ids, the comparison is done by comparing the ids of the authors.
+
+    Parameters
+    ----------
+    author1 : dict
+        Author 1 (kahi record)
+    author2 : dict
+        Author 2 (kahi record)
+
+    Returns
+    -------
+    bool
+        True if the authors are the same, False otherwise.
+    """
+    if "external_ids" not in author1.keys() or "external_ids" not in author2.keys():
+        if verbose > 4:
+            print("WARNING: External ids not found in the authors")
+            print(author1)
+            print(author2)
+        return False
+    for id1 in author1["external_ids"]:
+        for id2 in author2["external_ids"]:
+            if id1["source"] == id2["source"]:
+                if id1["id"] == id2["id"]:
+                    return True
+    return False
+
+
 def compare_author(author1: dict, author2: dict):
     """
     Function to compare two authors, the comparison is done by comparing the first and last name of the authors.
@@ -620,8 +650,13 @@ def compare_author(author1: dict, author2: dict):
     bool
         True if the authors are the same, False otherwise.
     """
+    # compare authors by ids
+    if compare_authors_ids(author1, author2):
+        return True
+    # compare authors by full names
     if normalize_name(author1["full_name"]) == normalize_name(author2["full_name"]):
         return True
+    # compare authors by first and last names of initials
     if len(author1["first_names"]) > 0 and len(author1["last_names"]) > 0:
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
             name_found = set(normalize_names(author1["first_names"])).intersection(
