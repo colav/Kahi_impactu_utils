@@ -626,12 +626,15 @@ def compare_authors_ids(author1: dict, author2: dict, verbose=4):
             print(author1)
             print(author2)
         return False
+    values = []
     for id1 in author1["external_ids"]:
         for id2 in author2["external_ids"]:
             if id1["source"] == id2["source"]:
                 if id1["id"] == id2["id"]:
-                    return True
-    return False
+                    values.append(True)
+                else:
+                    values.append(False)
+    return all(values)
 
 
 def compare_author(author1: dict, author2: dict):
@@ -671,6 +674,7 @@ def compare_author(author1: dict, author2: dict):
                 return False
         else:
             author2_names = split_names(author2["full_name"])
+            author2_names = split_names_fix(author1, author2_names)
             if len(author2_names["first_names"]) > 0 and len(author2_names["last_names"]) > 0:
                 name_found = set(normalize_names(author1["first_names"])).intersection(
                     normalize_names(author2_names["first_names"]))
@@ -685,6 +689,7 @@ def compare_author(author1: dict, author2: dict):
             return False
     else:
         author1_names = split_names(author1["full_name"])
+        author1_names = split_names_fix(author1_names, author2)
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
             if len(author1_names["first_names"]) > 0 and len(author1_names["last_names"]) > 0:
                 name_found = set(normalize_names(author1_names["first_names"])).intersection(
@@ -701,6 +706,7 @@ def compare_author(author1: dict, author2: dict):
                 return False
         else:
             author2_names = split_names(author2["full_name"])
+            author2_names = split_names_fix(author1_names, author2_names)
             if len(author2_names["first_names"]) > 0 and len(author2_names["last_names"]) > 0:
                 if len(author1_names["first_names"]) > 0 and len(author1_names["last_names"]):
                     name_found = set(normalize_names(author1_names["first_names"])).intersection(
