@@ -631,9 +631,14 @@ def compare_authors_ids(author1: dict, author2: dict, verbose=4):
         for id2 in author2["external_ids"]:
             if id1["source"] == id2["source"]:
                 if id1["id"] == id2["id"]:
+
                     values.append(True)
                 else:
                     values.append(False)
+
+                # scienti has priority, if it is found the authors.
+                if id1["source"] == "scienti":
+                    return values[-1]
     return all(values)
 
 
