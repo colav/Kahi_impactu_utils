@@ -292,6 +292,8 @@ def get_id_type_from_url(url):
         return "wos"
     if "ssrn" in url:
         return "ssrn"
+    if "openalex" in url:
+        return "openalex"
     return None
 
 
@@ -511,7 +513,8 @@ def get_id_from_url(value):
         return parse_publons_id_from_url(value)
     if get_id_type_from_url(value) == "ssrn":
         return parse_ssrn_id_from_url(value)
-
+    if get_id_type_from_url(value) == "openalex":
+        return value
     return None
 
 
