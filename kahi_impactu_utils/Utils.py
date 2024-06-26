@@ -543,7 +543,8 @@ def split_names_fix(author1, author2):
         author1['last_names'] = [x for x in author1['last_names']
                                  if x not in intersection]  # .union could change the order
         author1['first_names'] = author1['first_names'] + list(intersection)
-    return author1
+        return author1
+    return []
 
 
 def normalize_name(name):
@@ -631,20 +632,15 @@ def compare_authors_ids(author1: dict, author2: dict, verbose=4):
             print(author1)
             print(author2)
         return False
-    values = []
-    for id1 in author1["external_ids"]:
-        for id2 in author2["external_ids"]:
-            if id1["source"] == id2["source"]:
-                if id1["id"] == id2["id"]:
-
-                    values.append(True)
-                else:
-                    values.append(False)
-
-                # scienti has priority, if it is found the authors.
-                if id1["source"] == "scienti":
-                    return values[-1]
-    return all(values)
+    for source in ["scienti", "scopus", "orcid"]:
+        for id1 in author1["external_ids"]:
+            for id2 in author2["external_ids"]:
+                if id1["source"] == id2["source"] and id2["source"] == source and id1["id"] == id2["id"]:
+                    return True
+                # if we are in scienti and they are different we can return false/ with orcid and scopus we can't(we are not sure)
+                elif source == "scienti":
+                    return False
+        return False
 
 
 def compare_author(author1: dict, author2: dict):
@@ -684,7 +680,9 @@ def compare_author(author1: dict, author2: dict):
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            author2_names = split_names_fix(author1, author2_names)
+            author2_names_fix = split_names_fix(author1, author2_names)
+            if author2_names_fix:
+                author2_names = author2_names_fix
             if len(author2_names["first_names"]) > 0 and len(author2_names["last_names"]) > 0:
                 name_found = set(normalize_names(author1["first_names"])).intersection(
                     normalize_names(author2_names["first_names"]))
@@ -699,7 +697,9 @@ def compare_author(author1: dict, author2: dict):
             return False
     else:
         author1_names = split_names(author1["full_name"])
-        author1_names = split_names_fix(author1_names, author2)
+        author1_names_fix = split_names_fix(author1_names, author2)
+        if author1_names_fix:
+            author1_names = author1_names_fix
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
             if len(author1_names["first_names"]) > 0 and len(author1_names["last_names"]) > 0:
                 name_found = set(normalize_names(author1_names["first_names"])).intersection(
@@ -716,7 +716,9 @@ def compare_author(author1: dict, author2: dict):
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            author2_names = split_names_fix(author1_names, author2_names)
+            author2_names_fix = split_names_fix(author1_names, author2_names)
+            if author2_names_fix:
+                author2_names = author2_names_fix
             if len(author2_names["first_names"]) > 0 and len(author2_names["last_names"]) > 0:
                 if len(author1_names["first_names"]) > 0 and len(author1_names["last_names"]):
                     name_found = set(normalize_names(author1_names["first_names"])).intersection(
