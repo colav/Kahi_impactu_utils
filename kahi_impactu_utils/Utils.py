@@ -68,7 +68,14 @@ def flatten(xss):
     return [x for xs in xss for x in xs]
 
 
-def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS'], sep=':', foreign=False):
+def get_name_connector():
+    """
+    Collections of name connectors in multiple languages.
+    """
+    return ['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS']
+
+
+def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
