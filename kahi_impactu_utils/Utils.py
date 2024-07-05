@@ -639,14 +639,23 @@ def compare_authors_ids(author1: dict, author2: dict, verbose=4):
             print(author1)
             print(author2)
         return False
-    for source in ["scienti", "scopus", "orcid"]:
+    values = []
+    for source in ["scienti", "scopus", "orcid", "scholar"]:
         for id1 in author1["external_ids"]:
             for id2 in author2["external_ids"]:
                 if id1["source"] == id2["source"] and id2["source"] == source and id1["id"] == id2["id"]:
-                    return True
+                    values.append(True)
+                if id1["source"] == id2["source"] and id2["source"] == source and id1["id"] != id2["id"]:
+                    values.append(False)
+
                 # if we are in scienti and they are different we can return false/ with orcid and scopus we can't(we are not sure)
-                elif source == "scienti":
+                if id1["source"] == id2["source"] and source == "scienti" and id1["id"] == id2["id"]:
+                    return True
+                if id1["source"] == id2["source"] and source == "scienti" and id1["id"] != id2["id"]:
                     return False
+    if values:
+        return all(values)
+    else:
         return False
 
 
