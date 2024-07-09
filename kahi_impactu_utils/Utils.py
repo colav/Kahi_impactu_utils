@@ -68,7 +68,14 @@ def flatten(xss):
     return [x for xs in xss for x in xs]
 
 
-def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', foreign=False):
+def get_name_connector():
+    """
+    Collections of name connectors in multiple languages.
+    """
+    return ['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS']
+
+
+def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
@@ -115,9 +122,12 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
     dict
         A dictionary with the extracted parts of the full name.
     """
+    if s.strip().startswith('-'):
+        s = s[1:].strip()
     s = s.title()
     s = sub(r'\s*\-\s*', '-', s)  # hyphenation without space
-    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))  # Remove until 3 middle initials
+    # Remove until 3 middle initials
+    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))
     connectors = [e.title() for e in connectors]
     sl = sub('([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
     sl = sub('([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
@@ -150,17 +160,17 @@ def split_names(s, connectors=['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.'], sep=':', f
         else:
             sll = sl.split()[:2] + [sl.split()[2]] + ['']
 
-    d = {'names': [x.replace(sep, ' ') for x in sll[:2] if x],
-         'surenames': [x.replace(sep, ' ') for x in sll[2:] if x],
+    d = {'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
+         'last_names': [x.replace(sep, ' ') for x in sll[2:] if x],
          }
 
-    if any([x.find('-') > -1 for x in d['names']]):
-        d['names'] = flatten([x.split('-') for x in d['names']])
-    if any([x.find('-') > -1 for x in d['surenames']]):
-        d['surenames'] = flatten([x.split('-') for x in d['surenames']])
+    if any([x.find('-') > -1 for x in d['first_names']]):
+        d['first_names'] = flatten([x.split('-') for x in d['first_names']])
+    if any([x.find('-') > -1 for x in d['last_names']]):
+        d['last_names'] = flatten([x.split('-') for x in d['last_names']])
 
-    d['full_name'] = ' '.join(d['names'] + d['surenames'])
-    d['initials'] = [x[0] + '.' for x in d['names']]
+    d['full_name'] = ' '.join(d['first_names'] + d['last_names'])
+    d['initials'] = "".join([x[0] for x in d['first_names']])
 
     return d
 
@@ -286,11 +296,13 @@ def get_id_type_from_url(url):
     if "scopus" in url:
         return "scopus"
     if "publons" in url:
-        return "wos"
+        return "publons"
     if "webofscience" in url:
         return "wos"
     if "ssrn" in url:
         return "ssrn"
+    if "openalex" in url:
+        return "openalex"
     return None
 
 
@@ -445,10 +457,33 @@ def parse_wos_id_from_url(value):
     str
         The wos id
     """
-    if "webofscience" in value or "publons" in value:
+    if "webofscience" in value:
         _value = search(r'/(\d+)', value)
         if _value:
             return "https://www.webofscience.com/wos/author/record/" + _value.group(1)
+    return None
+
+
+def parse_publons_id_from_url(value):
+    """
+    Function to parse the wos id from the url,
+    it is the value of the profile path in the url
+    NOTE: publons redirects to the wos profile, but it is a different id
+
+    Parameters:
+    ----------
+    value: str
+        The url of the publons profile
+
+    Returns:
+    --------
+    str
+        The publons id
+    """
+    if "publons" in value:
+        _value = search(r'/(\d+)', value)
+        if _value:
+            return "https://publons.com/researcher/" + _value.group(1)
     return None
 
 
@@ -482,10 +517,41 @@ def get_id_from_url(value):
         return parse_scopus_id_from_url(value)
     if get_id_type_from_url(value) == "wos":
         return parse_wos_id_from_url(value)
+    # this is different that wos id, to do unicity redirect to wos have to be solved
+    if get_id_type_from_url(value) == "publons":
+        return parse_publons_id_from_url(value)
     if get_id_type_from_url(value) == "ssrn":
         return parse_ssrn_id_from_url(value)
-
+    if get_id_type_from_url(value) == "openalex":
+        return value
     return None
+
+
+def split_names_fix(author1, author2):
+    """
+    Method to fix the split names function, it is used to fix the split names function when it fails to split the names correctly
+    based on the good name that has an id such as cedula.
+
+    Parameters:
+    ----------
+    author1:dict
+        The name to be fixed ex: openalex name
+    author2:dict
+        The name to be used as reference ex: kahi name from scienti or puntaje
+
+    Returns:
+    --------
+    dict
+        The fixed name
+    """
+    intersection = set(author1['last_names']).intersection(
+        author2['first_names'])   # intersection = ['SN_name2']
+    if intersection:
+        author1['last_names'] = [x for x in author1['last_names']
+                                 if x not in intersection]  # .union could change the order
+        author1['first_names'] = author1['first_names'] + list(intersection)
+        return author1
+    return []
 
 
 def normalize_name(name):
@@ -502,7 +568,7 @@ def normalize_name(name):
     str
         The normalized name
     """
-    return str(unidecode.unidecode(name).encode("ascii", "ignore")).lower()
+    return str(unidecode.unidecode(name).encode("ascii", "ignore")).lower().strip()
 
 
 def normalize_names(names):
@@ -523,6 +589,76 @@ def normalize_names(names):
     return [normalize_name(name) for name in names]
 
 
+def compare_authors_initials(initials1: str, last_name1: str, initials2: str, last_name2: str):
+    """
+    Function to compare two authors by their initials and last name
+
+    Parameters:
+    ----------
+    initials1:str
+        The initials of the first author
+    last_name1:str
+        The last name of the first author
+    initials2:str
+        The initials of the second author
+    last_name2:str
+        The last name of the second author
+
+    Returns:
+    --------
+    bool
+        True if the authors are the same, False otherwise
+    """
+    initials1 = [*normalize_name(initials1).replace(".", "")]
+    initials2 = [*normalize_name(initials2).replace(".", "")]
+
+    if set(initials1).intersection(initials2) and normalize_name(last_name1) == normalize_name(last_name2):
+        return True
+    return False
+
+
+def compare_authors_ids(author1: dict, author2: dict, verbose=4):
+    """
+    Function to compare two authors by their ids, the comparison is done by comparing the ids of the authors.
+
+    Parameters
+    ----------
+    author1 : dict
+        Author 1 (kahi record)
+    author2 : dict
+        Author 2 (kahi record)
+
+    Returns
+    -------
+    bool
+        True if the authors are the same, False otherwise.
+    """
+    if "external_ids" not in author1.keys() or "external_ids" not in author2.keys():
+        if verbose > 4:
+            print("WARNING: External ids not found in the authors")
+            print(author1)
+            print(author2)
+        return False
+    values = []
+    for source in ["scienti", "scopus", "orcid", "scholar"]:
+        for id1 in author1["external_ids"]:
+            for id2 in author2["external_ids"]:
+                if id1["source"] == id2["source"] and id2["source"] == source and id1["id"] == id2["id"]:
+                    values.append(True)
+                if id1["source"] == id2["source"] and id2["source"] == source and id1["id"] != id2["id"]:
+                    values.append(False)
+
+                # if we are in scienti and they are different we can return false/ with orcid and scopus we can't(we are not sure)
+                if id1["source"] == id2["source"] and source == "scienti" and id1["id"] == id2["id"]:
+                    return True
+                if id1["source"] == id2["source"] and source == "scienti" and id1["id"] != id2["id"]:
+                    return False
+    if values:
+        return all(values)
+    else:
+        return False
+
+
 def compare_author(author1: dict, author2: dict):
     """
     Function to compare two authors, the comparison is done by comparing the first and last name of the authors.
@@ -539,6 +675,13 @@ def compare_author(author1: dict, author2: dict):
     bool
         True if the authors are the same, False otherwise.
     """
+    # compare authors by ids
+    if compare_authors_ids(author1, author2):
+        return True
+    # compare authors by full names
+    if normalize_name(author1["full_name"]) == normalize_name(author2["full_name"]):
+        return True
+    # compare authors by first and last names of initials
     if len(author1["first_names"]) > 0 and len(author1["last_names"]) > 0:
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
             name_found = set(normalize_names(author1["first_names"])).intersection(
@@ -548,45 +691,62 @@ def compare_author(author1: dict, author2: dict):
                     author2["last_names"][0]):
                 return True
             else:
+                if compare_authors_initials(author1["initials"], author1["last_names"][0], author2["initials"], author2["last_names"][0]):
+                    return True
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            if len(author2_names["names"]) > 0 and len(author2_names["surenames"]) > 0:
+            author2_names_fix = split_names_fix(author1, author2_names)
+            if author2_names_fix:
+                author2_names = author2_names_fix
+            if len(author2_names["first_names"]) > 0 and len(author2_names["last_names"]) > 0:
                 name_found = set(normalize_names(author1["first_names"])).intersection(
-                    normalize_names(author2_names["names"]))
+                    normalize_names(author2_names["first_names"]))
                 if name_found and normalize_name(
                         author1["last_names"][0]) == normalize_name(
-                        author2_names["surenames"][0]):
+                        author2_names["last_names"][0]):
                     return True
                 else:
+                    if compare_authors_initials(author1["initials"], author1["last_names"][0], author2_names["initials"], author2_names["last_names"][0]):
+                        return True
                     return False
             return False
     else:
         author1_names = split_names(author1["full_name"])
+        author1_names_fix = split_names_fix(author1_names, author2)
+        if author1_names_fix:
+            author1_names = author1_names_fix
         if len(author2["first_names"]) > 0 and len(author2["last_names"]) > 0:
-            if len(author1_names["names"]) > 0 and len(author1_names["surenames"]) > 0:
-                name_found = set(normalize_names(author1_names["names"])).intersection(
+            if len(author1_names["first_names"]) > 0 and len(author1_names["last_names"]) > 0:
+                name_found = set(normalize_names(author1_names["first_names"])).intersection(
                     normalize_names(author2["first_names"]))
                 if name_found and normalize_name(
-                        author1_names["surenames"][0]) == normalize_name(
+                        author1_names["last_names"][0]) == normalize_name(
                         author2["last_names"][0]):
                     return True
                 else:
+                    if compare_authors_initials(author1_names["initials"], author1_names["last_names"][0], author2["initials"], author2["last_names"][0]):
+                        return True
                     return False
             else:
                 return False
         else:
             author2_names = split_names(author2["full_name"])
-            if len(author2_names["names"]) > 0 and len(author2_names["surenames"]) > 0:
-                if len(author1_names["names"]) > 0 and len(author1_names["surenames"]):
-                    name_found = set(normalize_names(author1_names["names"])).intersection(
-                        normalize_names(author2_names["names"]))
+            author2_names_fix = split_names_fix(author1_names, author2_names)
+            if author2_names_fix:
+                author2_names = author2_names_fix
+            if len(author2_names["first_names"]) > 0 and len(author2_names["last_names"]) > 0:
+                if len(author1_names["first_names"]) > 0 and len(author1_names["last_names"]):
+                    name_found = set(normalize_names(author1_names["first_names"])).intersection(
+                        normalize_names(author2_names["first_names"]))
 
                     if name_found and normalize_name(
-                            author1_names["surenames"][0]) == normalize_name(
-                            author2_names["surenames"][0]):
+                            author1_names["last_names"][0]) == normalize_name(
+                            author2_names["last_names"][0]):
                         return True
                     else:
+                        if compare_authors_initials(author1_names["initials"], author1_names["last_names"][0], author2_names["initials"], author2_names["last_names"][0]):
+                            return True
                         return False
                 else:
                     return False
