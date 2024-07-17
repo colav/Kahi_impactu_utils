@@ -568,7 +568,7 @@ def normalize_name(name):
     str
         The normalized name
     """
-    return str(unidecode.unidecode(name).encode("ascii", "ignore").decode('ascii')).lower().strip()
+    return unidecode.unidecode(name).encode("ascii", "ignore").decode('ascii').lower().strip()
 
 
 def normalize_names(names):
