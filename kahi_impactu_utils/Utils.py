@@ -189,23 +189,23 @@ def doi_processor(doi):
     doi_regex = r"\b10\.\d{3,}/[^\s]+"
     match = search(doi_regex, doi)
     if match:
-        return match.group().strip().strip('.').lower()
+        return f"https://doi.org/{match.group().strip().strip('.').lower()}"
     doi_candidate = doi.replace(" ", "").strip().strip(
         '.').lower().replace("%2f", "/").replace("doi", "")
     match = search(doi_regex, doi_candidate)
     if match:
-        return match.group().strip().strip('.').lower()
+        return f"https://doi.org/{match.group().strip().strip('.').lower()}"
     if ('http' in doi_candidate or 'www' in doi_candidate or 'dx' in doi_candidate) and "10." in doi_candidate:
         doi_candidate = doi_candidate.split("/10")[-1].replace("%2f", "/")
         doi_candidate = "10" + doi_candidate
         match = search(doi_regex, doi_candidate)
         if match:
-            return match.group().strip('.').lower()
+            return f"https://doi.org/{match.group().strip('.').lower()}"
     if doi_candidate.startswith("0."):
         doi_candidate = "1" + doi_candidate
     match = search(doi_regex, doi_candidate)
     if match:
-        return match.group().strip().strip('.').lower()
+        return f"https://doi.org/{match.group().strip().strip('.').lower()}"
     doi_candidate = doi.split("/")
     if doi_candidate[0].endswith('.'):
         doi_candidate[0] = doi_candidate[0].strip('.')
@@ -214,7 +214,7 @@ def doi_processor(doi):
     doi_candidate = '/'.join(doi_candidate)
     match = search(doi_regex, doi_candidate)
     if match:
-        return match.group().strip().strip('.').lower()
+        return f"https://doi.org/{match.group().strip().strip('.').lower()}"
 
     return False
 
@@ -568,7 +568,7 @@ def normalize_name(name):
     str
         The normalized name
     """
-    return str(unidecode.unidecode(name).encode("ascii", "ignore").decode('ascii')).lower().strip()
+    return unidecode.unidecode(name).encode("ascii", "ignore").decode('ascii').lower().strip()
 
 
 def normalize_names(names):
