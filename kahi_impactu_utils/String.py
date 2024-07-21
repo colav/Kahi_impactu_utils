@@ -62,7 +62,7 @@ def parse_mathml(string):
     str
         The parsed title.
     """
-    with tempfile.NamedTemporaryFile(delete=True, mode='w+', suffix='.xml', prefix='temp_', dir='./') as temp_file:
+    with tempfile.NamedTemporaryFile(delete=True, mode='w+', suffix='.xml', prefix='temp_') as temp_file:
         temp_file.write(string)
         temp_file.flush()
         temp_file.seek(0)
