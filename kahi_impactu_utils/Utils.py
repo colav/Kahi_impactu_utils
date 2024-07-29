@@ -503,7 +503,7 @@ def get_id_from_url(value):
     str
         The id of the profile
     """
-    value = unquote(value)
+    value = unquote(str(value))
     value = value.replace(" ", "")
     if get_id_type_from_url(value) == "scholar":
         return parse_scholar_id_from_url(value)
