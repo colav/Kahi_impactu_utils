@@ -62,18 +62,8 @@ def parse_mathml(string):
     str
         The parsed title.
     """
-    with tempfile.NamedTemporaryFile(delete=True, mode='w+', suffix='.xml', prefix='temp_') as temp_file:
-        temp_file.write(string)
-        temp_file.flush()
-        temp_file.seek(0)
-        if [tag.name for tag in BeautifulSoup(temp_file, 'lxml').find_all() if tag.name.find('math') > -1]:
-            temp_file.seek(0)
-            temp_file.truncate()
-            temp_file.write(sub(r"([a-zA-Z])<", r"\1 <", string))
-            temp_file.flush()
-            temp_file.seek(0)
-            string = sub('\n', ' ', BeautifulSoup(
-                temp_file, 'lxml').text.strip())
+    if [tag.name for tag in BeautifulSoup(string, 'lxml').find_all() if tag.name.find('math') > -1]:
+        string = sub('\n', ' ', BeautifulSoup(sub(r"([a-zA-Z])<", r"\1 <", string), 'lxml').text.strip())
     return string
 
 
