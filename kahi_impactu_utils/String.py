@@ -2,7 +2,6 @@ from titlecase import titlecase
 from bs4 import BeautifulSoup
 from re import sub, findall
 import html
-import tempfile
 
 
 def abbreviations(word, **kwargs):
