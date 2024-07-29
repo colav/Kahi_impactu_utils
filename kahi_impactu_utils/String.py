@@ -62,8 +62,7 @@ def parse_mathml(string):
         The parsed title.
     """
     if [tag.name for tag in BeautifulSoup(string, 'lxml').find_all() if tag.name.find('math') > -1]:
-        string = sub('\n', ' ', BeautifulSoup(
-            sub(r"([a-zA-Z])<", r"\1 <", string), 'lxml').text.strip())
+        string = sub('\n', ' ', BeautifulSoup(sub(r"([a-zA-Z])<", r"\1 <", string), 'lxml').text.strip())
     return string
 
 
