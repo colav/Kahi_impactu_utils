@@ -617,9 +617,41 @@ def compare_authors_initials(initials1: str, last_name1: str, initials2: str, la
     return False
 
 
+def compare_authors_ids_scienti(author1: dict, author2: dict, verbose=4):
+    """
+    Function to compare two authors by their ids of scienti.
+
+    Parameters
+    ----------
+    author1 : dict
+        Author 1 (kahi record)
+    author2 : dict
+        Author 2 (kahi record)
+
+    Returns
+    -------
+    bool
+        True if the authors are the same, False otherwise, None if the ids are not found.
+    """
+    if "external_ids" not in author1.keys() or "external_ids" not in author2.keys():
+        if verbose > 4:
+            print("WARNING: External ids not found in the authors")
+            print(author1)
+            print(author2)
+        return None
+    id1 = [i["id"]
+           for i in author1["external_ids"] if i["source"] == "scienti"]
+    id2 = [i["id"]
+           for i in author2["external_ids"] if i["source"] == "scienti"]
+    if id1 and id2:
+        return id1 == id2
+    else:
+        return None
+
+
 def compare_authors_ids(author1: dict, author2: dict, verbose=4):
     """
-    Function to compare two authors by their ids, the comparison is done by comparing the ids of the authors.
+    Function to compare two authors by their ids of scienti, the comparison is done by comparing the ids of the authors.
 
     Parameters
     ----------
@@ -675,6 +707,10 @@ def compare_author(author1: dict, author2: dict):
     bool
         True if the authors are the same, False otherwise.
     """
+    # compare authors by ids of scienti
+    found = compare_authors_ids_scienti(author1, author2)
+    if found is not None:
+        return found
     # compare authors by ids
     if compare_authors_ids(author1, author2):
         return True
