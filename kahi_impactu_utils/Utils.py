@@ -651,7 +651,7 @@ def compare_authors_ids_scienti(author1: dict, author2: dict, verbose=4):
 
 def compare_authors_ids(author1: dict, author2: dict, verbose=4):
     """
-    Function to compare two authors by their ids of scienti, the comparison is done by comparing the ids of the authors.
+    Function to compare two authors by their ids, the comparison is done by comparing the ids of the authors.
 
     Parameters
     ----------
