@@ -87,7 +87,8 @@ def main():
             'iso639~=0.1.4',
             'unidecode',
             'titlecase',
-            'bs4'
+            'bs4',
+            'lxml'
         ],
     )
 
