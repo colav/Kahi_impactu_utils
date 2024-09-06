@@ -62,7 +62,8 @@ def parse_mathml(string):
         The parsed title.
     """
     if [tag.name for tag in BeautifulSoup(string, 'lxml').find_all() if tag.name.find('math') > -1]:
-        string = sub('\n', ' ', BeautifulSoup(sub(r"([a-zA-Z])<", r"\1 <", string), 'lxml').text.strip())
+        string = sub('\n', ' ', BeautifulSoup(
+            sub(r"([a-zA-Z])<", r"\1 <", string), 'lxml').text.strip())
     return string
 
 
@@ -88,3 +89,54 @@ def parse_html(string):
         soup = BeautifulSoup(string, 'html.parser')
         return soup.get_text()
     return string
+
+
+def text_to_inverted_index(string):
+    """
+    Function to create an inverted index from a list of strings.
+
+    Parameters:
+    -----------
+    string : str
+        The string to be indexed.
+
+    Returns:
+    --------
+    dict
+        The inverted index.
+    """
+    data = string.split()
+    index = {}
+    for idx, string in enumerate(data):
+        for word in string.split():
+            if word in index:
+                index[word].append(idx)
+            else:
+                index[word] = [idx]
+    return index
+
+
+def inverted_index_to_text(inv_index):
+    """
+    Function to convert an inverted index to the original text.
+
+    Parameters:
+    -----------
+    inv_index : dict
+        The inverted index.
+
+    Returns:
+    --------
+    str
+        The original text.
+    """
+    max_position = max(pos for positions in inv_index.values()
+                       for pos in positions)
+
+    text = [''] * (max_position + 1)
+
+    for term, positions in inv_index.items():
+        for pos in positions:
+            text[pos] = term
+
+    return ' '.join(text)
