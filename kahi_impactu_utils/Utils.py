@@ -268,6 +268,10 @@ def check_date_format(date_str):
     elif match(ym_format, date_str):
         return int(dt.strptime(date_str, "%Y-%m").timestamp())
     elif match(my_format, date_str):
+        date_list = date_str.split("-")
+        if date_list[0] == "00":  # required for bad format in scienti data
+            year = date_list[1]
+            return int(dt.strptime(year, "%Y").timestamp())
         return int(dt.strptime(date_str, "%m-%Y").timestamp())
     return ""
 
