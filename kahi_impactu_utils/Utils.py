@@ -616,7 +616,7 @@ def compare_authors_initials(initials1: str, last_name1: str, initials2: str, la
     initials1 = [*normalize_name(initials1).replace(".", "")]
     initials2 = [*normalize_name(initials2).replace(".", "")]
 
-    if set(initials1).intersection(initials2) and normalize_name(last_name1) == normalize_name(last_name2):
+    if initials1 == initials2 and normalize_name(last_name1) == normalize_name(last_name2):
         return True
     return False
 
@@ -695,7 +695,7 @@ def compare_authors_ids(author1: dict, author2: dict, verbose=4):
         return False
 
 
-def compare_author(author1: dict, author2: dict):
+def compare_author(author1: dict, author2: dict, n_authors: int):
     """
     Function to compare two authors, the comparison is done by comparing the first and last name of the authors.
 
@@ -747,8 +747,9 @@ def compare_author(author1: dict, author2: dict):
                         author2_names["last_names"][0]):
                     return True
                 else:
-                    if compare_authors_initials(author1["initials"], author1["last_names"][0], author2_names["initials"], author2_names["last_names"][0]):
-                        return True
+                    if n_authors <= 10:
+                        if compare_authors_initials(author1["initials"], author1["last_names"][0], author2_names["initials"], author2_names["last_names"][0]):
+                            return True
                     return False
             return False
     else:
@@ -765,8 +766,9 @@ def compare_author(author1: dict, author2: dict):
                         author2["last_names"][0]):
                     return True
                 else:
-                    if compare_authors_initials(author1_names["initials"], author1_names["last_names"][0], author2["initials"], author2["last_names"][0]):
-                        return True
+                    if n_authors <= 10:
+                        if compare_authors_initials(author1_names["initials"], author1_names["last_names"][0], author2["initials"], author2["last_names"][0]):
+                            return True
                     return False
             else:
                 return False
@@ -785,8 +787,9 @@ def compare_author(author1: dict, author2: dict):
                             author2_names["last_names"][0]):
                         return True
                     else:
-                        if compare_authors_initials(author1_names["initials"], author1_names["last_names"][0], author2_names["initials"], author2_names["last_names"][0]):
-                            return True
+                        if n_authors <= 10:
+                            if compare_authors_initials(author1_names["initials"], author1_names["last_names"][0], author2_names["initials"], author2_names["last_names"][0]):
+                                return True
                         return False
                 else:
                     return False
