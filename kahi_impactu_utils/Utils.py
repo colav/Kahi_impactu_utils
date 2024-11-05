@@ -705,6 +705,8 @@ def compare_author(author1: dict, author2: dict, n_authors: int):
         Author 1 (kahi record)
     author2 : dict
         Author 2 (kahi record)
+    n_authors : int
+        The number of authors in the work, used to limit the comparison of authors by initials.
 
     Returns
     -------
