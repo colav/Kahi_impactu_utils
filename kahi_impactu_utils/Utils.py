@@ -129,14 +129,14 @@ def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
     # Remove until 3 middle initials
     s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))
     connectors = [e.title() for e in connectors]
-    sl = sub('([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
-    sl = sub('([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
-    sl = sub('^(\w{2,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
+    sl = sub(r'([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
+    sl = sub(r'([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
+    sl = sub(r'^(\w{2,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
 
     # Clean connectors
     # Extract short names list
     lst = [s for s in split(
-        '(\w{1,3})%s' % sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
+        r'(\w{1,3})%s' % sep, sl) if len(s) >= 1 and len(s) <= 3]  # noqa: W605
     # intersection with connectors list
     exc = [value for value in lst if value not in connectors]
     if exc:
