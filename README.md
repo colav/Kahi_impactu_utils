@@ -50,6 +50,11 @@ date = "2020-01-01"
 print(check_date_format(date)) ## returns 1577854800  (UTC-5) for this date
 ```
 
+## Mapping example
+```python
+from kahi_impactu_utils.Mapping import ciarp_mapping
+ciarp_mapping("https://ror.org/03bp5hc83", "works") ## returns a list of categories for the entity works
+```
 
 # License
 BSD-3-Clause License 
