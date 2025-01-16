@@ -75,6 +75,71 @@ def get_name_connector():
     return ['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS']
 
 
+def split_name_part(name, connectors=get_name_connector()):
+    """
+    Allows to split a name into its parts, taking into account the connectors that are usually used in names.
+    This can be used to split  surenames or last names in a name. Some surenames and lastnames have connectors like 'DE', 'DEL', 'LA' etc..
+
+    Example:
+    given the name "BUSTAMANTE CARDONA, BERNARDO MARÍA DE LA CRUZ"
+    you need to split the surename "BERNARDO MARÍA DE LA CRUZ"
+
+    using   split_name_part("BERNARDO MARÍA DE LA CRUZ")
+
+    the function will return ['BERNARDO', 'MARÍA', 'DE LA CRUZ']
+
+
+    Parameters:
+    ----------
+    name:str
+        The name to be processed.
+
+    connectors:list
+        The connectors to be used to split the name.
+
+    Returns:
+    -------
+    list
+        The parts of the name.
+    """
+    if connectors is None:
+        connectors = [
+            "DE",
+            "DEL",
+            "LA",
+            "EL",
+            "VAN",
+            "DER",
+            "DA",
+            "DO",
+            "DI",
+            "VON",
+            "LOS",
+            "DAS",
+            "DAL",
+            "LAS",
+        ]
+
+    connectors = [c.upper() for c in connectors]
+
+    name = " ".join(name.strip().split()).title()
+
+    words = name.split()
+    part_names = []
+    buffer = []
+
+    for word in words:
+        if word.upper() in connectors:
+            buffer.append(word)
+        else:
+            if buffer:
+                part_names.append(" ".join(buffer + [word]))
+                buffer = []
+            else:
+                part_names.append(word)
+    return part_names
+
+
 def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
