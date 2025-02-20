@@ -13,7 +13,15 @@ To install Kahi impactu utils, follow these simple steps:
 
 1. Make sure you have Python installed on your system.
 2. Open a terminal or command prompt.
-3. Run the following command:
+3. Run the following commands:
+
+```shell
+git clone https://github.com/facebookresearch/fastText.git
+cd fastText
+pip install .
+```
+
+then
 
 ```shell
 pip install kahi_impactu_utils
@@ -27,7 +35,7 @@ from kahi_impactu_utils.Utils import split_names
 
 name = "John Doe"
 names = split_names(name)
-print(names) ## {'names': ['John'], 'surenames': ['Doe'], 'initials': ['J.']}
+print(names) ## {'names': ['John'], 'surenames': ['Doe'], 'initials': ['J']}
 ```
 
 ## Detect language example
