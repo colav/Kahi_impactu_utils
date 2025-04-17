@@ -191,12 +191,15 @@ def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
         s = s[1:].strip()
     s = s.title()
     s = sub(r'\s*\-\s*', '-', s)  # hyphenation without space
+
     # Remove until 3 middle initials
-    s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))
+    # s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))
     connectors = [e.title() for e in connectors]
-    sl = sub(r'([\s\-]\w{2,3})\s', fr'\1{sep}', s, UNICODE)  # noqa: W605
-    sl = sub(r'([\s\-]\w{2,3}%s\w{2,3})\s' % sep, fr'\1{sep}', sl, UNICODE)  # noqa: W605
-    sl = sub(r'^(\w{2,3})\s', fr'\1{sep}', sl, UNICODE)  # noqa: W605
+    sl = sub(r"([\s\-]\w{1,3})\s", rf"\1{sep}", s, UNICODE)  # noqa: W605
+    sl = sub(
+        r"([\s\-]\w{1,3}%s\w{1,3})\s" % sep, rf"\1{sep}", sl, UNICODE
+    )  # noqa: W605
+    sl = sub(r"^(\w{1,3})\s", rf"\1{sep}", sl, UNICODE)  # noqa: W605
 
     # Clean connectors
     # Extract short names list
