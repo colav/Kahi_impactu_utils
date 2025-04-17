@@ -72,7 +72,7 @@ def get_name_connector():
     """
     Collections of name connectors in multiple languages.
     """
-    return ['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS']
+    return ['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS', 'I', 'E']
 
 
 def split_name_part(name, connectors=get_name_connector()):
