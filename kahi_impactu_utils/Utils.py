@@ -276,9 +276,9 @@ def split_names(s, connectors=get_name_connector(), sep=':',
     # Fill two first names (last names) as empty strings if reverse = False (True)
     if len(sll) == 1:
         if not reverse:
-            sll = ['',''] + sl.split()[0:1]
+            sll = ['', ''] + sl.split()[0:1]
         else:
-            sll = sl.split()[0:1] + ['','']
+            sll = sl.split()[0:1] + ['', '']
 
     # Add sll[1] → ''
     elif len(sll) == 2:
@@ -288,17 +288,17 @@ def split_names(s, connectors=get_name_connector(), sep=':',
     elif len(sll) == 3:
         foreign = False
         if namsor_api_key:
-          origin = get_origin(s,namsor_api_key)
+            origin = get_origin(s,namsor_api_key)
         elif countryOrigin:
-          origin = countryOrigin
+            origin = countryOrigin
         else:
-          mdl = model.predict_ethnicity(s)
-          ethnicity = mdl[0].get('label').split(',')[-1]
-          score =  mdl[0].get('score')
-          if ethnicity != 'Hispanic' and score > 0.8:
-            origin = ethnicity
-          else:
-            origin = 'ES'
+            mdl = model.predict_ethnicity(s)
+            ethnicity = mdl[0].get('label').split(',')[-1]
+            score =  mdl[0].get('score')
+            if ethnicity != 'Hispanic' and score > 0.8:
+                origin = ethnicity
+            else:
+                origin = 'ES'
 
         if origin not in LA:
             foreign = True
@@ -322,7 +322,6 @@ def split_names(s, connectors=get_name_connector(), sep=':',
       d = {'first_names': [x.replace(sep, ' ') for x in sll[2:] if x],
            'last_names': [x.replace(sep, ' ') for x in sll[:2] if x],
            }
-
 
     if any([x.find('-') > -1 for x in d['first_names']]):
         d['first_names'] = flatten([x.split('-') for x in d['first_names']])
