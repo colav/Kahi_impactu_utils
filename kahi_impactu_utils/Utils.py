@@ -15,6 +15,38 @@ from racebert import RaceBERT
 
 model = RaceBERT()
 
+def get_origin(s,api_key):
+  """
+  Analyzes an unsplit full name (first name and last name) to identify its country of origin.
+
+  Parameters:
+  ----------
+  s:str
+    Full name
+  api_key:str
+    API key from https://namsor.app/api-documentation
+
+  Returns:
+  -------
+  str
+    Code fo country of origin ('ES' as default)
+  """
+  url = f"https://v2.namsor.com/NamSorAPIv2/api2/json/originFull/{s}"
+  # split names → funciona mal
+  #url = f"https://v2.namsor.com/NamSorAPIv2/api2/json/parseName/{s}"
+
+  headers = {
+    "X-API-KEY": api_key,
+  "Accept": "application/json"
+  }
+
+  response = requests.request("GET", url, headers=headers)
+  if response.status_code == 200:
+    return response.json().get('countryOrigin')
+  else:
+    return 'ES' # default value
+
+
 def lang_poll(text, verbose=0):
     """
     function to detect the language of a given text, it uses several libraries to detect the language
