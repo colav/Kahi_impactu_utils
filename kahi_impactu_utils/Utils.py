@@ -6,12 +6,11 @@ from langid import classify
 import pycld2 as cld2
 from fastspell import FastSpell
 from urllib.parse import unquote
-
-fast_spell = FastSpell("en", mode="cons")
-
 import requests
 
 from racebert import RaceBERT
+
+fast_spell = FastSpell("en", mode="cons")
 
 model = RaceBERT()
 
