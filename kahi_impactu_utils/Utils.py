@@ -14,7 +14,8 @@ fast_spell = FastSpell("en", mode="cons")
 
 model = RaceBERT()
 
-def get_origin(s,api_key):
+
+def get_origin(s, api_key):
     """
     Analyzes an unsplit full name (first name and last name) to identify its country of origin.
 
