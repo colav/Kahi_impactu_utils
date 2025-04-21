@@ -33,18 +33,18 @@ def get_origin(s, api_key):
     """
     url = f"https://v2.namsor.com/NamSorAPIv2/api2/json/originFull/{s}"
     # split names → funciona mal
-    #url = f"https://v2.namsor.com/NamSorAPIv2/api2/json/parseName/{s}"
+    # url = f"https://v2.namsor.com/NamSorAPIv2/api2/json/parseName/{s}"
 
     headers = {
-      "X-API-KEY": api_key,
-      "Accept": "application/json"
+        "X-API-KEY": api_key,
+        "Accept": "application/json"
     }
 
     response = requests.request("GET", url, headers=headers)
     if response.status_code == 200:
-      return response.json().get('countryOrigin')
+        return response.json().get('countryOrigin')
     else:
-      return 'ES' # default value
+        return 'ES'  # default value
 
 
 def lang_poll(text, verbose=0):
@@ -180,9 +180,10 @@ def split_name_part(name, connectors=get_name_connector()):
 
 
 def split_names(s, connectors=get_name_connector(), sep=':',
-                reverse = False, namsor_api_key=None, countryOrigin = None,
-                LA = ['ES','PT','AR','BO','BR','CL','CO','CR','CU','DO','EC',
-                      'SV','GT','HN','MX','NI','PA','PY','PE','PR','UY','VE']):
+                reverse=False, namsor_api_key=None, countryOrigin=None,
+                LA=['ES', 'PT', 'AR', 'BO', 'BR', 'CL', 'CO', 'CR', 'CU', 'DO',
+                    'EC', 'SV', 'GT', 'HN', 'MX', 'NI', 'PA', 'PY', 'PE', 'PR',
+                    'UY', 'VE']):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
