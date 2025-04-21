@@ -9,6 +9,11 @@ from urllib.parse import unquote
 
 fast_spell = FastSpell("en", mode="cons")
 
+import requests
+
+from racebert import RaceBERT
+
+model = RaceBERT()
 
 def lang_poll(text, verbose=0):
     """
@@ -72,7 +77,7 @@ def get_name_connector():
     """
     Collections of name connectors in multiple languages.
     """
-    return ['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS']
+    return ['DE', 'DEL', 'LA', 'EL', 'JR', 'JR.', 'VAN', 'DER', 'DA', 'DO', 'DI', 'VON', 'LOS', 'DAS', 'DAL', 'LAS', 'I', 'E']
 
 
 def split_name_part(name, connectors=get_name_connector()):
@@ -118,6 +123,8 @@ def split_name_part(name, connectors=get_name_connector()):
             "DAS",
             "DAL",
             "LAS",
+            "I",
+            "E"
         ]
 
     connectors = [c.upper() for c in connectors]
@@ -140,7 +147,10 @@ def split_name_part(name, connectors=get_name_connector()):
     return part_names
 
 
-def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
+def split_names(s, connectors=get_name_connector(), sep=':',
+                reverse = False, namsor_api_key=None, countryOrigin = None,
+                LA = ['ES','PT','AR','BO','BR','CL','CO','CR','CU','DO','EC',
+                      'SV','GT','HN','MX','NI','PA','PY','PE','PR','UY','VE']):
     """
     Extract the parts of the full name `s` in the format ([] → optional):
 
@@ -164,11 +174,11 @@ def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
           'SARA RESTREPO FERNÁNDEZ', # Colombian: NAME two LAST_NAMES
           'ENRICO NARDI', # Foreing
           'ANA ZEA',
-          'SOL ANA DE ZEA GIL'
+          'SOL ANA DE ZEA GIL',
+          'ANTONIO ENEA ROMANO'
     Fails:
     ----
         s='RANGEL MARTINEZ VILLAL ANDRES MAURICIO' # more than 2 last names
-        s='ROMANO ANTONIO ENEA' # Foreing → LAST_NAME NAMES
         s='Ramón Fernandez de la Vara-Prieto'
 
     Parameters:
@@ -176,11 +186,25 @@ def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
     s:str
         The full name to be processed.
     connectors:list
-        A list of connectors between names which are assumed to be at least of length 2.
+        A list of connectors between names which are assumed to be at least of
+        length 2.
     sep:str
         The separator to be used to split the names.
-    foreign:boolean
-        True if only there are one last name in the name
+    revers:boolean
+        True if the name is reversed
+    namsor_api_key:str
+        If not `None`, check the country of origin with the namsor API key to
+        split names of 3 components. One first name and two last names if
+        country in `LA` (Hispanic). If `None` the module `racebert` will be used
+        to predict if the name is not Hispanic
+        with accuracy: 0.996 (https://bit.ly/4lFjMyT)
+    countryOrigin:str
+        ISO 3166-1 alpha-2 code for the country of origin of the name of 3
+        components to split; If `None` and `namsor_api_key` is also`None`,
+        the module `racebert` will be used to predict if the name is not Hispanic
+        with accuracy: 0.996 (https://bit.ly/4lFjMyT)
+    LA:list
+        List of country codes with origin in Ibero America
 
     Returns:
     -------
@@ -191,7 +215,6 @@ def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
         s = s[1:].strip()
     s = s.title()
     s = sub(r'\s*\-\s*', '-', s)  # hyphenation without space
-
     # Remove until 3 middle initials
     # s = sub(r'\s\w\.*\s', ' ', sub(r'\s\w\.*\s', ' ', s))
     connectors = [e.title() for e in connectors]
@@ -211,26 +234,62 @@ def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
         for e in exc:
             sl = sl.replace('{}{}'.format(e, sep), '{} '.format(e))
 
+    # Go to standard 4-names components if possible
     if sl.find('-') and len(sl.split()) == 3:
         sl = sl.replace('-', ' ')
 
     sll = sl.split()
 
+    # Fill two first names (last names) as empty strings if reverse = False (True)
     if len(sll) == 1:
-        sll = [''] + [''] + [sl.split()[0]]
-
-    elif len(sll) == 2:
-        sll = [sl.split()[0]] + [''] + [sl.split()[1]]
-
-    elif len(sll) == 3:
-        if not foreign:
-            sll = [sl.split()[0]] + [''] + sl.split()[1:]
+        if not reverse:
+            sll = ['',''] + sl.split()[0:1]
         else:
-            sll = sl.split()[:2] + [sl.split()[2]] + ['']
+            sll = sl.split()[0:1] + ['','']
 
-    d = {'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
-         'last_names': [x.replace(sep, ' ') for x in sll[2:] if x],
-         }
+    # Add sll[1] → ''
+    elif len(sll) == 2:
+        sll = sl.split()[0:1] + [''] + sl.split()[1:2]
+
+    # Fill the fourth item with an empty string
+    elif len(sll) == 3:
+        foreign = False
+        if namsor_api_key:
+          origin = get_origin(s,namsor_api_key)
+        elif countryOrigin:
+          origin = countryOrigin
+        else:
+          mdl = model.predict_ethnicity(s)
+          ethnicity = mdl[0].get('label').split(',')[-1]
+          score =  mdl[0].get('score')
+          if ethnicity != 'Hispanic' and score > 0.8:
+            origin = ethnicity
+          else:
+            origin = 'ES'
+
+        if origin not in LA:
+            foreign = True
+
+        max_first_names = 1
+        if foreign:
+          max_first_names = 2
+
+        max_last_names = 3 - max_first_names
+        if not reverse:
+          sll = sl.split()[0:max_first_names] + [''] + sl.split()[max_first_names:]
+        else:
+          sll = sl.split()[0:max_last_names] + [''] + sl.split()[max_last_names:]
+
+    #  Ignore empty strings
+    if not reverse:
+      d = {'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
+           'last_names': [x.replace(sep, ' ') for x in sll[2:] if x],
+           }
+    else:
+      d = {'first_names': [x.replace(sep, ' ') for x in sll[2:] if x],
+           'last_names': [x.replace(sep, ' ') for x in sll[:2] if x],
+           }
+
 
     if any([x.find('-') > -1 for x in d['first_names']]):
         d['first_names'] = flatten([x.split('-') for x in d['first_names']])
@@ -241,7 +300,6 @@ def split_names(s, connectors=get_name_connector(), sep=':', foreign=False):
     d['initials'] = "".join([x[0] for x in d['first_names']])
 
     return d
-
 
 def doi_processor(doi):
     """
