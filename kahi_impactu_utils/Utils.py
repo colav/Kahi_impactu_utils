@@ -288,13 +288,13 @@ def split_names(s, connectors=get_name_connector(), sep=':',
     elif len(sll) == 3:
         foreign = False
         if namsor_api_key:
-            origin = get_origin(s,namsor_api_key)
+            origin = get_origin(s, namsor_api_key)
         elif countryOrigin:
             origin = countryOrigin
         else:
             mdl = model.predict_ethnicity(s)
             ethnicity = mdl[0].get('label').split(',')[-1]
-            score =  mdl[0].get('score')
+            score = mdl[0].get('score')
             if ethnicity != 'Hispanic' and score > 0.8:
                 origin = ethnicity
             else:
@@ -309,17 +309,17 @@ def split_names(s, connectors=get_name_connector(), sep=':',
 
         max_last_names = 3 - max_first_names
         if not reverse:
-          sll = sl.split()[0:max_first_names] + [''] + sl.split()[max_first_names:]
+            sll = sl.split()[0:max_first_names] + [''] + sl.split()[max_first_names:]
         else:
-          sll = sl.split()[0:max_last_names] + [''] + sl.split()[max_last_names:]
+            sll = sl.split()[0:max_last_names] + [''] + sl.split()[max_last_names:]
 
     #  Ignore empty strings
     if not reverse:
-      d = {'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
+        d = {'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
            'last_names': [x.replace(sep, ' ') for x in sll[2:] if x],
            }
     else:
-      d = {'first_names': [x.replace(sep, ' ') for x in sll[2:] if x],
+        d = {'first_names': [x.replace(sep, ' ') for x in sll[2:] if x],
            'last_names': [x.replace(sep, ' ') for x in sll[:2] if x],
            }
 
@@ -332,6 +332,7 @@ def split_names(s, connectors=get_name_connector(), sep=':',
     d['initials'] = "".join([x[0] for x in d['first_names']])
 
     return d
+
 
 def doi_processor(doi):
     """
