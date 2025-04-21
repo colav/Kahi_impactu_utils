@@ -315,11 +315,13 @@ def split_names(s, connectors=get_name_connector(), sep=':',
 
     #  Ignore empty strings
     if not reverse:
-        d = {'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
+        d = {
+             'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
              'last_names': [x.replace(sep, ' ') for x in sll[2:] if x],
             }
     else:
-        d = {'first_names': [x.replace(sep, ' ') for x in sll[2:] if x],
+        d = {
+             'first_names': [x.replace(sep, ' ') for x in sll[2:] if x],
              'last_names': [x.replace(sep, ' ') for x in sll[:2] if x],
             }
 
