@@ -181,7 +181,7 @@ def split_name_part(name, connectors=get_name_connector()):
 
 def split_names(s, connectors=get_name_connector(), sep=':',
                 reverse=False, namsor_api_key=None, countryOrigin=None,
-                LA=['ES', 'PT', 'AR', 'BO', 'BR', 'CL', 'CO', 'CR', 'CU', 'DO',
+                LA=['ES', 'PT', 'BO', 'BR', 'CL', 'CO', 'CR', 'CU', 'DO',
                     'EC', 'SV', 'GT', 'HN', 'MX', 'NI', 'PA', 'PY', 'PE', 'PR',
                     'UY', 'VE']):
     """
@@ -295,7 +295,9 @@ def split_names(s, connectors=get_name_connector(), sep=':',
             mdl = model.predict_ethnicity(s)
             ethnicity = mdl[0].get('label').split(',')[-1]
             score = mdl[0].get('score')
-            if ethnicity != 'Hispanic' and score > 0.8:
+            race = model.predict_race(s)[0].get('label')
+
+            if ethnicity != 'Hispanic' and score > 0.5 and race != 'hispanic':
                 origin = ethnicity
             else:
                 origin = 'ES'
