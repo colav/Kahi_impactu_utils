@@ -295,7 +295,9 @@ def split_names(s, connectors=get_name_connector(), sep=':',
             mdl = model.predict_ethnicity(s)
             ethnicity = mdl[0].get('label').split(',')[-1]
             score = mdl[0].get('score')
-            if ethnicity != 'Hispanic' and score > 0.8:
+            race = model.predict_race(s)[0].get('label')
+
+            if ethnicity != 'Hispanic' and score > 0.5 and race != 'hispanic':            
                 origin = ethnicity
             else:
                 origin = 'ES'
