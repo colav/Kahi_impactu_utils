@@ -88,7 +88,8 @@ def main():
             'unidecode',
             'titlecase',
             'bs4',
-            'lxml'
+            'lxml',
+            'racebert'
         ],
     )
 
