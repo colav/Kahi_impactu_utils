@@ -349,6 +349,10 @@ def doi_processor(doi):
     -------
         str or bool: If a valid DOI is found, return the cleaned DOI; otherwise, return False.
     """
+    if "\x00" in doi:
+        doi = doi.split("\x00", 1)[0]
+    doi = doi.strip().strip('.')
+
     doi_regex = r"\b10\.\d{3,}/[^\s]+"
     match = search(doi_regex, doi)
     if match:
