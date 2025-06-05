@@ -315,16 +315,16 @@ def split_names(s, connectors=get_name_connector(), sep=':',
         else:
             sll = sl.split()[0:max_last_names] + [''] + sl.split()[max_last_names:]
 
-    #  Ignore empty strings
+    #  Ignore empty strings and ignore single letter last names
     if not reverse:
         d = {
             'first_names': [x.replace(sep, ' ') for x in sll[:2] if x],
-            'last_names': [x.replace(sep, ' ') for x in sll[2:] if x],
+            'last_names': [x.replace(sep, ' ') for x in sll[2:] if x and len(x) > 1],
         }
     else:
         d = {
             'first_names': [x.replace(sep, ' ') for x in sll[2:] if x],
-            'last_names': [x.replace(sep, ' ') for x in sll[:2] if x],
+            'last_names': [x.replace(sep, ' ') for x in sll[:2] if x and len(x) > 1],
         }
 
     if any([x.find('-') > -1 for x in d['first_names']]):
