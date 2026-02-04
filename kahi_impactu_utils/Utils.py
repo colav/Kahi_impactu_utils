@@ -16,6 +16,12 @@ _model = None
 
 
 def get_model():
+    """
+    Lazily initialize the RaceBERT model so it is loaded only on first use
+
+    Returns:
+        RaceBERT: A cached instance of the RaceBERT model.
+    """
     global _model
     if _model is None:
         _model = RaceBERT()
