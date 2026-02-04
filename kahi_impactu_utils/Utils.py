@@ -12,7 +12,14 @@ from racebert import RaceBERT
 
 fast_spell = FastSpell("en", mode="cons")
 
-model = RaceBERT()
+_model = None
+
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = RaceBERT()
+    return _model
 
 
 def get_origin(s, api_key):
@@ -292,10 +299,11 @@ def split_names(s, connectors=get_name_connector(), sep=':',
         elif countryOrigin:
             origin = countryOrigin
         else:
-            mdl = model.predict_ethnicity(s)
+            m = get_model()
+            mdl = m.predict_ethnicity(s)
             ethnicity = mdl[0].get('label').split(',')[-1]
             score = mdl[0].get('score')
-            race = model.predict_race(s)[0].get('label')
+            race = m.predict_race(s)[0].get('label')
 
             if ethnicity != 'Hispanic' and score > 0.5 and race != 'hispanic':
                 origin = ethnicity
