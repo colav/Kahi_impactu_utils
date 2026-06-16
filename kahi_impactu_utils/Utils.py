@@ -1,18 +1,123 @@
-from re import sub, split, UNICODE, search, match, findall
-import unidecode
 from datetime import datetime as dt
+import hashlib
+import os
+from pathlib import Path
+from re import sub, split, UNICODE, search, match, findall
+import tempfile
+from urllib.parse import unquote
+import urllib.request
 
+import unidecode
 from langid import classify
 import pycld2 as cld2
+import fasttext
 from fastspell import FastSpell
-from urllib.parse import unquote
 import requests
 
-from racebert import RaceBERT
 
-fast_spell = FastSpell("en", mode="cons")
+def _first_writable_cache_dir():
+    candidates = []
+    configured = os.environ.get("KAHI_IMPACTU_MODEL_CACHE")
+    if configured:
+        candidates.append(configured)
+
+    airflow_home = os.environ.get("AIRFLOW_HOME")
+    if airflow_home:
+        candidates.append(os.path.join(airflow_home, "cache", "kahi_impactu_utils"))
+
+    candidates.extend(
+        [
+            "/opt/airflow/cache/kahi_impactu_utils",
+            os.path.join(Path.home(), ".cache", "kahi_impactu_utils"),
+            os.path.join(tempfile.gettempdir(), "kahi_impactu_utils"),
+        ]
+    )
+
+    for candidate in candidates:
+        try:
+            path = Path(candidate).expanduser()
+            path.mkdir(parents=True, exist_ok=True)
+            probe = path / ".write_test"
+            probe.write_text("", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+            return str(path)
+        except OSError:
+            continue
+
+    raise RuntimeError("No writable cache directory found for Kahi ImpactU models")
+
+
+def _is_writable_dir(path):
+    try:
+        directory = Path(path).expanduser()
+        directory.mkdir(parents=True, exist_ok=True)
+        probe = directory / ".write_test"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return True
+    except OSError:
+        return False
+
+
+def _set_writable_cache_env(name, value):
+    current = os.environ.get(name)
+    if not current or not _is_writable_dir(current):
+        _is_writable_dir(value)
+        os.environ[name] = value
+
+
+_MODEL_CACHE_DIR = _first_writable_cache_dir()
+_set_writable_cache_env("KAHI_IMPACTU_MODEL_CACHE", _MODEL_CACHE_DIR)
+_set_writable_cache_env("XDG_CACHE_HOME", os.path.join(_MODEL_CACHE_DIR, "xdg"))
+_set_writable_cache_env("HF_HOME", os.path.join(_MODEL_CACHE_DIR, "huggingface"))
+_set_writable_cache_env("HF_HUB_CACHE", os.path.join(_MODEL_CACHE_DIR, "huggingface", "hub"))
+_set_writable_cache_env("TRANSFORMERS_CACHE", os.path.join(_MODEL_CACHE_DIR, "huggingface"))
+_set_writable_cache_env("TORCH_HOME", os.path.join(_MODEL_CACHE_DIR, "torch"))
+
+
+class CachedFastSpell(FastSpell):
+    """FastSpell variant that stores the FastText model in a writable cache."""
+
+    def download_fasttext(self):
+        model_dir = os.path.join(_MODEL_CACHE_DIR, "fastspell")
+        os.makedirs(model_dir, exist_ok=True)
+        model_path = os.path.join(model_dir, "lid.176.bin")
+
+        if self._md5(model_path) != self.ft_model_hash:
+            urllib.request.urlretrieve(self.ft_download_url, model_path)
+        if self._md5(model_path) != self.ft_model_hash:
+            raise RuntimeError(f"Invalid FastText model checksum at {model_path}")
+
+        self.model = fasttext.load_model(model_path)
+
+    @staticmethod
+    def _md5(path):
+        if not os.path.exists(path):
+            return ""
+
+        hsh = hashlib.md5()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+                hsh.update(chunk)
+        return hsh.hexdigest()
+
+
+_fast_spell = None
 
 _model = None
+
+
+def get_fast_spell():
+    """
+    Lazily initialize FastSpell so importing this module does not download models.
+
+    Returns:
+        CachedFastSpell: A cached instance using KAHI_IMPACTU_MODEL_CACHE.
+    """
+    global _fast_spell
+    if _fast_spell is None:
+        _fast_spell = CachedFastSpell("en", mode="cons")
+    return _fast_spell
 
 
 def get_model():
@@ -22,6 +127,8 @@ def get_model():
     Returns:
         RaceBERT: A cached instance of the RaceBERT model.
     """
+    from racebert import RaceBERT
+
     global _model
     if _model is None:
         _model = RaceBERT()
@@ -98,7 +205,7 @@ def lang_poll(text, verbose=0):
                 print(e)
 
     try:
-        result = fast_spell.getlang(text)  # low_memory breaks the function
+        result = get_fast_spell().getlang(text)  # low_memory breaks the function
         lang_list.append(result.lower())
     except Exception as e:
         if verbose > 4:
