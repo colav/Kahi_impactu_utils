@@ -15,6 +15,7 @@ import pycld2 as cld2
 import fasttext
 from fastspell import FastSpell
 import requests
+from kahi_impactu_utils.String import normalize_dashes
 
 
 def _first_writable_cache_dir():
@@ -327,7 +328,7 @@ def split_name_part(name, connectors=get_name_connector()):
 
     connectors = [c.upper() for c in connectors]
 
-    name = " ".join(name.strip().split()).title()
+    name = " ".join(normalize_dashes(name or "").split()).title()
 
     words = name.split()
     part_names = []
@@ -410,6 +411,9 @@ def split_names(s, connectors=get_name_connector(), sep=':',
     dict
         A dictionary with the extracted parts of the full name.
     """
+    # Canonicalise every Unicode dash to the ASCII hyphen so the hyphen-aware
+    # rules below see "Alonso\u2010Herrero" and "Alonso-Herrero" alike.
+    s = normalize_dashes(s, replacement='-') or ''
     if s.strip().startswith('-'):
         s = s[1:].strip()
     s = s.title()
@@ -950,6 +954,7 @@ def normalize_name(name):
     str
         The normalized name
     """
+    name = normalize_dashes(name or "")
     return unidecode.unidecode(name).encode("ascii", "ignore").decode('ascii').lower().strip()
 
 
