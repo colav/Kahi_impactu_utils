@@ -1,5 +1,12 @@
 
 
+def canonical_ror_url(value):
+    """Return a canonical ROR URL from either a code or a ROR URL."""
+    text = str(value).strip().replace("https: //ror.org/", "")
+    text = text.replace("https://ror.org/", "")
+    return f"https://ror.org/{text}"
+
+
 def ciarp_mapping(ror_code, entity):
     """
     Function to map ROR codes to categories based on a specific entity type.
@@ -23,6 +30,15 @@ def ciarp_mapping(ror_code, entity):
     ------
     """
     ciarp_data_types = {
+        "https://ror.org/02yr3f298": {
+            "Artículo de revista": "works",
+            "Capítulo de libro": "works",
+            "Libro": "works",
+            "Posters presentados": "events",
+            "Ponencias en eventos": "events",
+            "Evento organizado": "events",
+            "Norma técnica": "misc",
+        },
         "https://ror.org/03bp5hc83": {
             "Articulo corto publicado en libro de texto": "works",
             "Articulo corto publicado en libro resultado de investigacion": "works",
@@ -255,9 +271,13 @@ def ciarp_mapping(ror_code, entity):
         }
     }
 
+    # This CIARP source uses the same category catalogue as 03bp5hc83.
+    ciarp_data_types["https://ror.org/04cmc9894"] = \
+        ciarp_data_types["https://ror.org/03bp5hc83"]
+
     # Validate ROR code
     if ror_code not in ciarp_data_types:
-        raise ValueError("ROR code not found")
+        raise ValueError(f"ROR code not found: {ror_code}")
 
     # Validate entity
     if entity not in ["works", "patents", "events", "misc"]:

@@ -1,9 +1,11 @@
 from datetime import datetime as dt
+from numbers import Integral, Real
 import hashlib
 import os
 from pathlib import Path
 from re import sub, split, UNICODE, search, match, findall
 import tempfile
+from threading import RLock
 from urllib.parse import unquote
 import urllib.request
 
@@ -75,6 +77,48 @@ _set_writable_cache_env("TRANSFORMERS_CACHE", os.path.join(_MODEL_CACHE_DIR, "hu
 _set_writable_cache_env("TORCH_HOME", os.path.join(_MODEL_CACHE_DIR, "torch"))
 
 
+_RACEBERT_REPOSITORIES = (
+    "pparasurama/raceBERT",
+    "pparasurama/raceBERT-ethnicity",
+)
+
+
+def _has_cached_transformer(repository):
+    """Return whether a complete main snapshot is available locally."""
+    repository_dir = "models--" + repository.replace("/", "--")
+    cache_roots = {
+        Path(os.environ["TRANSFORMERS_CACHE"]),
+        Path(os.environ["HF_HUB_CACHE"]),
+    }
+    for cache_root in cache_roots:
+        model_root = cache_root / repository_dir
+        main_ref = model_root / "refs" / "main"
+        try:
+            revision = main_ref.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        snapshot = model_root / "snapshots" / revision
+        has_weights = any(
+            (snapshot / filename).is_file()
+            for filename in ("model.safetensors", "pytorch_model.bin")
+        )
+        if (snapshot / "config.json").is_file() and has_weights:
+            return True
+    return False
+
+
+def _configure_cached_racebert():
+    """Keep RaceBERT offline when both required models are already cached."""
+    if all(_has_cached_transformer(repo) for repo in _RACEBERT_REPOSITORIES):
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        return True
+    return False
+
+
+_RACEBERT_OFFLINE = _configure_cached_racebert()
+
+
 class CachedFastSpell(FastSpell):
     """FastSpell variant that stores the FastText model in a writable cache."""
 
@@ -105,6 +149,7 @@ class CachedFastSpell(FastSpell):
 _fast_spell = None
 
 _model = None
+_model_lock = RLock()
 
 
 def get_fast_spell():
@@ -130,9 +175,10 @@ def get_model():
     from racebert import RaceBERT
 
     global _model
-    if _model is None:
-        _model = RaceBERT()
-    return _model
+    with _model_lock:
+        if _model is None:
+            _model = RaceBERT()
+        return _model
 
 
 def get_origin(s, api_key):
@@ -412,11 +458,14 @@ def split_names(s, connectors=get_name_connector(), sep=':',
         elif countryOrigin:
             origin = countryOrigin
         else:
-            m = get_model()
-            mdl = m.predict_ethnicity(s)
-            ethnicity = mdl[0].get('label').split(',')[-1]
-            score = mdl[0].get('score')
-            race = m.predict_race(s)[0].get('label')
+            # Hugging Face/PyTorch pipelines mutate inference state and are not
+            # safe to execute concurrently on the shared RaceBERT instance.
+            with _model_lock:
+                m = get_model()
+                mdl = m.predict_ethnicity(s)
+                ethnicity = mdl[0].get('label').split(',')[-1]
+                score = mdl[0].get('score')
+                race = m.predict_race(s)[0].get('label')
 
             if ethnicity != 'Hispanic' and score > 0.5 and race != 'hispanic':
                 origin = ethnicity
@@ -449,9 +498,17 @@ def split_names(s, connectors=get_name_connector(), sep=':',
         }
 
     if any([x.find('-') > -1 for x in d['first_names']]):
-        d['first_names'] = flatten([x.split('-') for x in d['first_names']])
+        d['first_names'] = [
+            part
+            for part in flatten([x.split('-') for x in d['first_names']])
+            if part
+        ]
     if any([x.find('-') > -1 for x in d['last_names']]):
-        d['last_names'] = flatten([x.split('-') for x in d['last_names']])
+        d['last_names'] = [
+            part
+            for part in flatten([x.split('-') for x in d['last_names']])
+            if part
+        ]
 
     d['full_name'] = ' '.join(d['first_names'] + d['last_names'])
     d['initials'] = "".join([x[0] for x in d['first_names']])
@@ -505,6 +562,35 @@ def doi_processor(doi):
         return f"https://doi.org/{match.group().strip().strip('.').lower()}"
 
     return False
+
+
+def normalize_publication_year(value, current_year=None):
+    """Return an integer year in [1800, current year + 2], or None.
+
+    Integer strings and integral numeric values are accepted; missing,
+    malformed, fractional and boolean values are treated as unknown.
+    None is serialized as null in JSON and MongoDB.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, Integral):
+        year = int(value)
+    elif isinstance(value, Real):
+        try:
+            year = int(value)
+        except (ValueError, OverflowError):
+            return None
+        if value != year:
+            return None
+    elif isinstance(value, str) and match(r"^[+-]?\d+$", value.strip()):
+        try:
+            year = int(value.strip())
+        except ValueError:
+            return None
+    else:
+        return None
+    upper_bound = (dt.now().year if current_year is None else current_year) + 2
+    return year if 1800 <= year <= upper_bound else None
 
 
 def check_date_format(date_str):
@@ -685,7 +771,11 @@ def parse_orcid_id_from_url(value):
     value = search(
         r"(?:ORCID\s?)?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})-?([a-zA-Z0-9]{4})", value)
     if value:
-        return "https://orcid.org/" + "-".join(value.groups())
+        groups = list(value.groups())
+        # Canonicalize the check character without changing numeric digits.
+        if groups[-1].endswith("x"):
+            groups[-1] = groups[-1][:-1] + "X"
+        return "https://orcid.org/" + "-".join(groups)
     return None
 
 

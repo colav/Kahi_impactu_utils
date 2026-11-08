@@ -1,6 +1,6 @@
 from titlecase import titlecase
 from bs4 import BeautifulSoup
-from re import sub, findall
+from re import sub, findall, search, IGNORECASE
 import html
 
 
@@ -61,7 +61,8 @@ def parse_mathml(string):
     str
         The parsed title.
     """
-    if [tag.name for tag in BeautifulSoup(string, 'lxml').find_all() if tag.name.find('math') > -1]:
+    math_tag = r'<\s*/?\s*(?:[\w.-]+:)?[\w.-]*math[\w.-]*(?:\s|/?>)'
+    if search(math_tag, string, IGNORECASE):
         string = sub('\n', ' ', BeautifulSoup(
             sub(r"([a-zA-Z])<", r"\1 <", string), 'lxml').text.strip())
     return string
