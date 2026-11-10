@@ -3,7 +3,7 @@ from numbers import Integral, Real
 import hashlib
 import os
 from pathlib import Path
-from re import sub, split, UNICODE, search, match, findall
+from re import sub, split, UNICODE, search, match, findall, finditer
 import tempfile
 from threading import RLock
 from urllib.parse import unquote
@@ -566,6 +566,52 @@ def doi_processor(doi):
         return f"https://doi.org/{match.group().strip().strip('.').lower()}"
 
     return False
+
+
+# An ISBN-13 (prefix 978/979) or an ISBN-10, allowing one space or hyphen between digits.
+_ISBN_CANDIDATE = r"(?<![0-9X])(97[89](?:[ -]?[0-9]){10}|[0-9](?:[ -]?[0-9]){8}[ -]?[0-9X])(?![0-9X])"
+
+
+def _isbn13_check_digit(first12):
+    total = sum(int(digit) * (3 if position % 2 else 1) for position, digit in enumerate(first12))
+    return str((10 - total % 10) % 10)
+
+
+def _isbn10_is_valid(isbn10):
+    total = sum((10 if char == "X" else int(char)) * (10 - position) for position, char in enumerate(isbn10))
+    return total % 11 == 0
+
+
+def isbn_processor(isbn):
+    """
+    Normalize an ISBN to its 13-digit form.
+
+    ISBN-13 is the canonical form because every ISBN-10 has exactly one ISBN-13
+    (prefix 978), while ISBN-13 numbers with prefix 979 have no ISBN-10. Labels
+    such as "ISBN-13:", spaces and any dash variant are ignored, and the check
+    digit is verified, so placeholders such as "0" are rejected. When the text
+    holds several candidates, the first valid one is returned.
+
+    Parameters:
+    ----------
+        isbn: str or int
+            Value that should contain an ISBN-10 or an ISBN-13.
+    Returns:
+    -------
+        str or None: The 13 digits without separators, or None if no valid ISBN is found.
+    """
+    if isinstance(isbn, bool) or not isinstance(isbn, (str, Integral)):
+        return None
+    text = normalize_dashes(str(isbn).upper(), replacement="-") or ""
+    text = sub(r"ISBN(?:[ -]?1[03])?\s*:?", " ", text)
+    for candidate in finditer(_ISBN_CANDIDATE, text):
+        digits = sub(r"[ -]", "", candidate.group())
+        if len(digits) == 13 and digits[12] == _isbn13_check_digit(digits[:12]):
+            return digits
+        if len(digits) == 10 and _isbn10_is_valid(digits):
+            core = "978" + digits[:9]
+            return core + _isbn13_check_digit(core)
+    return None
 
 
 def normalize_publication_year(value, current_year=None):
