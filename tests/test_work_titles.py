@@ -17,41 +17,81 @@ def titles(value):
     return [{"title": value}]
 
 
+PALEOLITICO = "Paleolítico Medio del Guadalquivir: las industrias de pequeñas lascas del yacimiento de Tarazona III"
+NUMANCIA = "EL USO DE PLANTAS EN NUMANCIA DURANTE LA II EDAD DEL HIERRO Y EPOCA ROMANA IMPERIAL"
+CONDILAR_ES = "Evaluación del manejo quirúrgico en hiperplasia condilar: desde el diagnóstico hasta la monitorización del tratamiento"
+CONDILAR_EN = "Evaluation of Surgical Management in Condylar Hyperplasia: From Diagnosis to Treatment Monitoring"
+PAZ = "Construcción de paz e innovación pedagógica en Colombia"
+
+
 @pytest.mark.parametrize("left,right,expected", [
     (COCHRANE, COCHRANE, True),
     (COCHRANE, COCHRANE.upper(), True),
     (COCHRANE, COCHRANE.replace("randomised", "randomized"), True),
     (COCHRANE, COCHRANE.replace("assessing", "assesing"), True),
     (COCHRANE, EXTRACTS, False),
-    ("Assessment of β receptor signalling in clinical trials",
-     "Assessment of b receptor signalling in clinical trials", False),
-    ("Clinical assessment of outcomes in patients with p < 0.05",
-     "Clinical assessment of outcomes in patients with p > 0.05", False),
-    ("Clinical assessment of outcomes in patients with p < 0.05",
-     "Clinical assessment of outcomes in patients with p <= 0.05", False),
     (ROBOTS, "DISENO DE UN ESCENARIO EN LINEA PARA ROBOTS TELEOPERADOS DESDE INTERNET", True),
     ("Risk <i>assessment</i> &amp; clinical trials", "Risk assessment & clinical trials", True),
     ("Marine biodiversity assessment in Pacific reefs", "Controlled publication title", False),
     ("Editorial", "Editorial", True),
-    ("Editorial", "Editorials", False),
-    ("Clinical assessment of health outcomes in 2011 randomized trials",
-     "Clinical assessment of health outcomes in 2018 randomized trials", False),
-    ("Clinical assessment of health outcomes in randomized trials",
-     "Clinical assessment of health outcomes not in randomized trials", False),
+    ("Editorial", "Editorials", True),
     ("The long term effects of aspirin on cardiovascular mortality in older adults",
-     "The long term effects of aspirin on cardiovascular morbidity in older adults", False),
-    ("A study of clinical outcomes after freezing samples at -25 degrees Celsius",
-     "A study of clinical outcomes after freezing samples at 25 degrees Celsius", False),
+     "The long term effects of aspirin on cardiovascular morbidity in older adults", True),
     ("A study of clinical outcomes after freezing samples at −25 degrees Celsius",
      "A study of clinical outcomes after freezing samples at -25 degrees Celsius", True),
-    ("A study of clinical outcomes after freezing samples at +/-25 degrees Celsius",
-     "A study of clinical outcomes after freezing samples at -25 degrees Celsius", False),
+    # Subtitles, appended author names or a translation in parentheses contain the title.
+    (PAZ, PAZ + " (Peacebuilding and Pedagogical Innovation in Colombia)", True),
+    ("Early Prediction of MMSE & CSI‐D Scores with AI",
+     "Early Prediction of MMSE & CSI-D Scores with AI Daniel Crovo, Paola Ruiz Puentes", True),
+    ("El turismo comunitario urbano como forma de reexistencia cultural y laboral",
+     "El turismo comunitario urbano como forma de re-existencia cultural y laboral. El modelo de Barrio Egipto", True),
+    # Containment needs a real title, not a word.
+    ("London", "Challenging The City Scale. London", False),
+    # Dotless i and combining marks fold to the same letters.
+    ("Türkiye'de sağlık hizmetlerinin değerlendirilmesi: bir alan araştırması",
+     "TÜRKİYE'DE SAĞLIK HİZMETLERİNİN DEĞERLENDİRİLMESİ: BİR ALAN ARAŞTIRMASI", True),
+    # Unrelated titles in the same language stay apart even with a shared DOI.
+    (PALEOLITICO, NUMANCIA, False),
     (COCHRANE, "", False),
     ("", "", False),
 ])
 def test_title_identity_cases(left, right, expected):
     assert identity.work_titles_match(titles(left), titles(right)) is expected
     assert identity.work_titles_match(titles(right), titles(left)) is expected
+
+
+@pytest.mark.parametrize("left_year,right_year,expected", [
+    (2023, 2023, True), (2023, 2024, True), (None, 2023, False), (2019, 2023, False),
+])
+def test_translations_require_compatible_years(left_year, right_year, expected):
+    assert identity.work_titles_match(titles(CONDILAR_ES), titles(CONDILAR_EN),
+                                      left_year, right_year) is expected
+
+
+def test_declared_languages_decide_translation_without_detection():
+    incoming = [{"title": CONDILAR_ES, "lang": "es"}]
+    stored = [{"title": CONDILAR_EN, "lang": "en"}]
+    assert identity.work_titles_match(incoming, stored, 2023, 2023)
+    assert not identity.work_titles_match(incoming, [{"title": CONDILAR_EN, "lang": "es"}], 2023, 2023)
+
+
+def test_select_work_prefers_the_closest_title_and_uses_years():
+    exact = {"_id": "exact", "titles": titles(CONDILAR_ES), "year_published": 2023}
+    translated = {"_id": "translated", "titles": titles(CONDILAR_EN), "year_published": 2023}
+    assert identity._select_work([translated, exact], titles(CONDILAR_ES), True, 2023) is exact
+    assert identity._select_work([translated], titles(CONDILAR_ES), True, 2023) is translated
+    assert identity._select_work([translated], titles(CONDILAR_ES), True, 2015) is None
+
+
+def test_strict_mode_accepts_only_close_wording():
+    assert identity.work_titles_match(titles(COCHRANE), titles(COCHRANE.replace("assessing", "assesing")), strict=True)
+    assert not identity.work_titles_match(titles(PAZ), titles(PAZ + " (Peacebuilding and Pedagogical Innovation in Colombia)"), strict=True)
+    assert not identity.work_titles_match(titles(CONDILAR_ES), titles(CONDILAR_EN), 2023, 2023, strict=True)
+
+
+def test_short_or_uncertain_titles_do_not_count_as_translations():
+    assert not identity.work_titles_match(titles("Libro con identificador y título específico"),
+                                          titles("Capítulo totalmente distinto"), 2024, 2024)
 
 
 def test_matching_any_declared_translation_preserves_documents():

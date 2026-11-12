@@ -91,12 +91,20 @@ http://colav.udea.edu.co/
 
 ## Fast DOI title identity
 
-`Work.work_titles_match` requires exact normalized equality or conservative
-spelling variants scoring at least 98/100. Numbers and word count must remain
-the same; changed words allow at most one character edit, and short titles
-require exact equality. Presentation differences in case, accents, whitespace,
-HTML and punctuation are normalized. A bounded process-local cache and native
-RapidFuzz operations keep the comparison local, with no HTTP or database calls.
+Works sharing a DOI are the same publication unless their titles show no
+resemblance: the title only guards against DOIs typed on the wrong record.
+`Work.work_titles_match` scores normalized titles (case, accents, dotless i and
+other letters folded to ASCII, HTML, punctuation): 100 when equal, 95 when one
+title of at least 25 characters is contained in the other (subtitles, appended
+author names, a translation in parentheses), 70-94 for similar wording
+(RapidFuzz ratio) and 70 for a translation, that is titles in different
+languages (declared `lang`, or langid with at least 0.95 probability on titles
+of 30+ characters) whose publication years are both known and differ by at
+most one. Anything below 70 keeps a separate work and logs a "DOI/title
+conflict" warning for the DOI audit in post-calculations. Non-DOI routes pass
+`strict=True`: equal or closely similar wording only (90/100), without
+containment or translation. The comparison is local, with no HTTP or database
+calls.
 
 Both `find_work_by_doi` and coordinated `insert_work_by_doi` validate the title
 when a DOI already exists, even with a single candidate. The retained legacy

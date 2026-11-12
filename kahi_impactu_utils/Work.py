@@ -12,20 +12,33 @@ from unicodedata import combining, normalize
 from bson import ObjectId
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
-from rapidfuzz.distance import Levenshtein
+from langid.langid import LanguageIdentifier, model as _LANGID_MODEL
 from rapidfuzz.fuzz import ratio
+from unidecode import unidecode
 
 from kahi_impactu_utils.Utils import doi_processor
 
 
 DOI_COLLATION = {"locale": "en", "strength": 2}
 COORDINATION_COLLECTION = "_kahi_work_identity"
-TITLE_THRESHOLD = 98
+# Works sharing a DOI are the same publication unless their titles show no
+# resemblance at all: the title only guards against DOIs typed by hand on
+# the wrong record. Scores: 100 exact, 95 one title contained in the other,
+# 70-99 similar wording, 70 translation with compatible years.
+# Non-DOI routes (ISBN, source ids, fingerprints, Elasticsearch) pass
+# strict=True: similar wording only, no containment and no translation.
+TITLE_THRESHOLD = 70
+STRICT_THRESHOLD = 90
+CONTAINMENT_SCORE = 95
+TRANSLATION_SCORE = 70
+CONTAINMENT_MIN_LENGTH = 25
+LANGUAGE_MIN_LENGTH = 30
+LANGUAGE_MIN_PROBABILITY = 0.95
+TITLE_LANGUAGES = ("es", "en", "pt", "fr", "it", "de")
+YEAR_TOLERANCE = 1
 _TITLE_PUNCTUATION = re.compile(r"[\W_]+")
 _TITLE_MARKUP = re.compile(r"</?[a-z][^>]*>", re.IGNORECASE)
-_TITLE_NUMBERS = re.compile(r"\d+")
 _TITLE_SIGN = re.compile(r"(?<!\w)([-+])(?=\d)")
-_TITLE_NEGATIONS = frozenset({"no", "not", "non", "without", "sin", "con", "with"})
 LOGGER = logging.getLogger(__name__)
 
 
@@ -86,65 +99,105 @@ def normalize_work_title(value):
                          ("<", "less"), (">", "greater"), ("±", "plus minus")):
         value = value.replace(symbol, f" {text} ")
     value = "".join(char for char in normalize("NFKD", value.casefold()) if not combining(char))
+    value = unidecode(value)  # dotless i, l with stroke, ligatures and other letters without decomposition
     value = _TITLE_SIGN.sub(lambda match: "minus " if match[1] == "-" else "plus ", value)
     return _TITLE_PUNCTUATION.sub(" ", value).strip()
 
 
+@lru_cache(maxsize=1)
+def _language_identifier():
+    identifier = LanguageIdentifier.from_modelstring(_LANGID_MODEL, norm_probs=True)
+    identifier.set_languages(TITLE_LANGUAGES)
+    return identifier
+
+
+@lru_cache(maxsize=4096)
+def _detect_language(normalized_title):
+    """Language of a title when langid is confident; None otherwise."""
+    if len(normalized_title) < LANGUAGE_MIN_LENGTH:
+        return None
+    language, probability = _language_identifier().classify(normalized_title)
+    return language if probability >= LANGUAGE_MIN_PROBABILITY else None
+
+
 def _normalized_titles(titles):
-    return tuple(dict.fromkeys(
-        normalized for item in (titles or []) if isinstance(item, dict)
-        and isinstance(item.get("title"), str)
-        and (normalized := normalize_work_title(item["title"]))
-    ))
-
-
-def _near_title_score(left, right):
-    # Exact equality is handled before any fuzzy operation. Short titles,
-    # changed numbers, missing words and negations require exact equality.
-    if min(len(left), len(right)) < 40:
-        return 0
-    if abs(len(left) - len(right)) * 100 > 4 * max(len(left), len(right)):
-        return 0
-    if _TITLE_NUMBERS.findall(left) != _TITLE_NUMBERS.findall(right):
-        return 0
-    left_words, right_words = left.split(), right.split()
-    if len(left_words) != len(right_words):
-        return 0
-    score = ratio(left, right, score_cutoff=TITLE_THRESHOLD)
-    if not score:
-        return 0
-    for a, b in zip(left_words, right_words):
-        if a == b:
+    """Normalized title -> declared language (None when unknown)."""
+    result = {}
+    for item in titles or []:
+        if not isinstance(item, dict) or not isinstance(item.get("title"), str):
             continue
-        if (min(len(a), len(b)) < 4 or a in _TITLE_NEGATIONS or b in _TITLE_NEGATIONS
-                or Levenshtein.distance(a, b, score_cutoff=1) > 1):
-            return 0
-    return score
+        normalized = normalize_work_title(item["title"])
+        if normalized and normalized not in result:
+            lang = item.get("lang")
+            result[normalized] = lang.lower() if isinstance(lang, str) and lang.strip() else None
+    return result
 
 
-def _normalized_title_score(incoming, stored):
+def _title_language(normalized, declared):
+    return declared or _detect_language(normalized)
+
+
+def _years_compatible(left, right):
+    """Both publication years known and within tolerance (translations need this)."""
+    try:
+        left, right = int(left or 0), int(right or 0)
+    except (TypeError, ValueError):
+        return False
+    return bool(left and right) and abs(left - right) <= YEAR_TOLERANCE
+
+
+def _near_title_score(left, right, left_lang=None, right_lang=None, years_compatible=False,
+                      strict=False):
+    if not left or not right:
+        return 0
+    if strict:
+        return ratio(left, right, score_cutoff=STRICT_THRESHOLD)
+    shorter, longer = sorted((left, right), key=len)
+    if len(shorter) >= CONTAINMENT_MIN_LENGTH and shorter in longer:
+        return CONTAINMENT_SCORE
+    score = ratio(left, right, score_cutoff=TITLE_THRESHOLD)
+    if score:
+        return min(score, CONTAINMENT_SCORE - 1)
+    if not years_compatible:
+        return 0
+    left_lang = _title_language(left, left_lang)
+    right_lang = _title_language(right, right_lang)
+    if left_lang and right_lang and left_lang != right_lang:
+        return TRANSLATION_SCORE
+    return 0
+
+
+def _normalized_title_score(incoming, stored, years_compatible=False, strict=False):
     if set(incoming).intersection(stored):
         return 100
-    return max((_near_title_score(a, b) for a in incoming for b in stored), default=0)
+    return max((_near_title_score(a, b, incoming[a], stored[b], years_compatible, strict)
+                for a in incoming for b in stored), default=0)
 
 
-def _title_score(incoming, stored):
-    return _normalized_title_score(_normalized_titles(incoming), _normalized_titles(stored))
+def _title_score(incoming, stored, incoming_year=None, stored_year=None, strict=False):
+    return _normalized_title_score(_normalized_titles(incoming), _normalized_titles(stored),
+                                   _years_compatible(incoming_year, stored_year), strict)
 
 
-def work_titles_match(incoming, stored):
-    """Require exact normalized titles or conservative spelling variants."""
-    return _title_score(incoming, stored) >= TITLE_THRESHOLD
+def work_titles_match(incoming, stored, incoming_year=None, stored_year=None, *, strict=False):
+    """Same publication: equal, similar, nested or translated titles (years within tolerance).
+
+    strict=True (non-DOI evidence) accepts equal or closely similar titles only.
+    """
+    threshold = STRICT_THRESHOLD if strict else TITLE_THRESHOLD
+    return _title_score(incoming, stored, incoming_year, stored_year, strict) >= threshold
 
 
-def _select_work(matches, titles, allow_distinct_titles):
+def _select_work(matches, titles, allow_distinct_titles, year=None):
     if not matches:
         return None
     normalized = _normalized_titles(titles)
     if not normalized:
         raise AmbiguousWorkDOI("A source title is required to choose an existing DOI work")
     # The retained compatibility argument must never bypass title validation.
-    ranked = sorted(((_normalized_title_score(normalized, _normalized_titles(work.get("titles"))), str(work["_id"]), work)
+    ranked = sorted(((_normalized_title_score(normalized, _normalized_titles(work.get("titles")),
+                                              _years_compatible(year, work.get("year_published"))),
+                      str(work["_id"]), work)
                      for work in matches), key=lambda item: (-item[0], item[1]))
     compatible = [item for item in ranked if item[0] >= TITLE_THRESHOLD]
     if not compatible:
@@ -156,7 +209,7 @@ def _select_work(matches, titles, allow_distinct_titles):
     return compatible[0][2]
 
 
-def find_work_by_doi(collection, value, projection=None, *, titles=None,
+def find_work_by_doi(collection, value, projection=None, *, titles=None, year=None,
                      allow_distinct_titles=True):
     doi = canonical_work_doi(value)
     if doi is None:
@@ -170,8 +223,9 @@ def find_work_by_doi(collection, value, projection=None, *, titles=None,
     if projection is not None and titles is not None:
         selected_projection = dict(projection)
         selected_projection["titles"] = 1
+        selected_projection["year_published"] = 1
     matches = list(collection.find(query, projection=selected_projection, collation=DOI_COLLATION))
-    return _select_work(matches, titles, allow_distinct_titles)
+    return _select_work(matches, titles, allow_distinct_titles, year)
 
 
 def claim_work_doi(collection, work, value):
@@ -246,14 +300,17 @@ def insert_work_by_doi(collection, entry, *, allow_distinct_titles=True):
     while True:
         with _coordinate_doi(collection, doi) as (control, key, owner, state):
             existing = find_work_by_doi(collection, doi, titles=entry.get("titles"),
+                                        year=entry.get("year_published"),
                                         allow_distinct_titles=allow_distinct_titles)
             if existing is not None:
                 return None, claim_work_doi(collection, existing, doi)
             pending = [item for item in state.get("reservations", [])
                        if collection.find_one({"_id": item["_id"]}, {"_id": 1}) is None]
-            reservation = _select_work(pending, entry.get("titles"), allow_distinct_titles)
+            reservation = _select_work(pending, entry.get("titles"), allow_distinct_titles,
+                                       entry.get("year_published"))
             if reservation is None:
-                reservation = {"_id": entry.get("_id") or ObjectId(), "titles": entry.get("titles") or []}
+                reservation = {"_id": entry.get("_id") or ObjectId(), "titles": entry.get("titles") or [],
+                               "year_published": entry.get("year_published")}
                 response = control.update_one({"_id": key, "owner": owner,
                                                "expires_at": {"$gt": datetime.now(timezone.utc)}},
                                               {"$push": {"reservations": reservation}})
@@ -269,6 +326,7 @@ def insert_work_by_doi(collection, entry, *, allow_distinct_titles=True):
                 winner = collection.find_one({"_id": reservation["_id"]})
                 if winner is None:
                     raise
-                if not work_titles_match(entry.get("titles"), winner.get("titles")):
+                if not work_titles_match(entry.get("titles"), winner.get("titles"),
+                                         entry.get("year_published"), winner.get("year_published")):
                     raise AmbiguousWorkDOI(f"Reserved work {winner['_id']} has an incompatible title")
                 return None, claim_work_doi(collection, winner, doi)
