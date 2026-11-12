@@ -3,6 +3,7 @@ from numbers import Integral, Real
 import hashlib
 import os
 from pathlib import Path
+import re
 from re import sub, split, UNICODE, search, match, findall, finditer
 import tempfile
 from threading import RLock
@@ -520,6 +521,53 @@ def split_names(s, connectors=get_name_connector(), sep=':',
     return d
 
 
+_DOI_PREFIX = r"10\.\d{4,9}"
+_DOI_URLISH = re.compile(r"(?:https?://|dx\.doi\.org/|doi\.org/|doi:)")
+_DOI_GARBAGE = re.compile(r"(?:https?://|dx\.doi\.org/|doi\.org/|doi:|[<>\"'\\]|\s)")
+_DOI_TOKEN = re.compile(_DOI_PREFIX + r"/[^\s<>\"']+")
+
+
+def repair_doi(bare):
+    """Repair a bare DOI (``10.prefix/suffix``) typed with a repeated prefix, an
+    embedded DOI URL or trailing garbage; None when nothing reliable is left or
+    the text carries a different DOI.
+
+    ``10.15332/10.15332/s2339`` -> ``10.15332/s2339``;
+    ``10.11144/https://doi.org/javeriana.x`` -> ``10.11144/javeriana.x``;
+    ``10.1016/j.x.015https://doi.org/10.1016/j.x.015`` -> ``10.1016/j.x.015``;
+    ``10.1016/doi.org/`` -> None; two different DOIs -> None.
+    """
+    if not isinstance(bare, str):
+        return None
+    match = re.match(r"(" + _DOI_PREFIX + r")/(.*)$", bare.strip().strip(".,;:").lower())
+    if not match:
+        return None
+    prefix, rest = match.groups()
+    duplicate = prefix + "/"
+    while True:
+        urlish = _DOI_URLISH.match(rest)
+        if urlish:
+            rest = rest[urlish.end():]
+        elif rest.startswith(duplicate):
+            rest = rest[len(duplicate):]
+        else:
+            break
+    garbage = _DOI_GARBAGE.search(rest)
+    if garbage:
+        head, tail = rest[:garbage.start()], rest[garbage.start():]
+    else:
+        inner = re.search(_DOI_PREFIX + "/", rest)
+        head, tail = (rest[:inner.start()], rest[inner.start():]) if inner else (rest, "")
+    head = head.rstrip(".,;:(")
+    if not head:
+        return None
+    repaired = f"{prefix}/{head}"
+    others = {token.rstrip(".,;:)") for token in _DOI_TOKEN.findall(tail)}
+    if others - {repaired}:
+        return None
+    return repaired
+
+
 def doi_processor(doi):
     """
     Process a DOI (Digital Object Identifier) and return a cleaned version.
@@ -530,7 +578,23 @@ def doi_processor(doi):
     Returns:
     -------
         str or bool: If a valid DOI is found, return the cleaned DOI; otherwise, return False.
+        Repeated prefixes, embedded DOI URLs and trailing garbage are repaired
+        (see ``repair_doi``); text carrying several different DOIs returns False.
     """
+    extracted = _extract_doi(doi)
+    if not extracted:
+        return False
+    repaired = repair_doi(extracted[len("https://doi.org/"):])
+    if not repaired:
+        return False
+    tokens = {repair_doi(token) for token in _DOI_TOKEN.findall(doi.lower())}
+    if len(tokens - {None, repaired}) > 0:
+        return False
+    return f"https://doi.org/{repaired}"
+
+
+def _extract_doi(doi):
+    """Locate the first DOI-looking token (historical behaviour of doi_processor)."""
     if "\x00" in doi:
         doi = doi.split("\x00", 1)[0]
     doi = doi.strip().strip('.')
