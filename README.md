@@ -58,6 +58,23 @@ date = "2020-01-01"
 print(check_date_format(date)) ## returns 1577854800  (UTC-5) for this date
 ```
 
+## Normalize publication years
+
+`normalize_publication_year(value)` returns an integer between 1800 and the
+current calendar year + 2 (inclusive), or `None` (JSON/MongoDB `null`). Missing,
+malformed and out-of-range years are unknown; the work itself is not discarded.
+The upper bound is computed dynamically. Valid existing metadata should be
+preserved when a new source supplies an invalid year.
+
+```python
+from kahi_impactu_utils.Utils import normalize_publication_year
+
+normalize_publication_year(1799)  # None
+normalize_publication_year("1800")  # 1800
+normalize_publication_year(2028, current_year=2026)  # 2028
+normalize_publication_year(2029, current_year=2026)  # None
+```
+
 ## Mapping example
 ```python
 from kahi_impactu_utils.Mapping import ciarp_mapping
@@ -72,3 +89,26 @@ http://colav.udea.edu.co/
 
 
 
+## Fast DOI title identity
+
+Works sharing a DOI are the same publication unless their titles show no
+resemblance: the title only guards against DOIs typed on the wrong record.
+`Work.work_titles_match` scores normalized titles (case, accents, dotless i and
+other letters folded to ASCII, HTML, punctuation): 100 when equal, 95 when one
+title of at least 25 characters is contained in the other (subtitles, appended
+author names, a translation in parentheses), 70-94 for similar wording
+(RapidFuzz ratio) and 70 for a translation, that is titles in different
+languages (declared `lang`, or langid with at least 0.95 probability on titles
+of 30+ characters) whose publication years are both known and differ by at
+most one. Anything below 70 keeps a separate work and logs a "DOI/title
+conflict" warning for the DOI audit in post-calculations. Non-DOI routes pass
+`strict=True`: equal or closely similar wording only (90/100), without
+containment or translation. The comparison is local, with no HTTP or database
+calls.
+
+Both `find_work_by_doi` and coordinated `insert_work_by_doi` validate the title
+when a DOI already exists, even with a single candidate. The retained legacy
+`allow_distinct_titles` parameter cannot disable this check. Missing titles
+cannot confirm a match. Distinct titles may retain the same DOI for a later
+audit; this code neither resolves DOI ownership remotely nor repairs historical
+merged documents.

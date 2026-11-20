@@ -86,6 +86,7 @@ def main():
             'fastspell~=0.8.0',
             'iso639~=0.1.4',
             'unidecode',
+            'rapidfuzz>=3',
             'titlecase',
             'bs4',
             'lxml',
