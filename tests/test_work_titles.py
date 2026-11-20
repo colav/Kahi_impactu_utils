@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 
 from kahi_impactu_utils import Work as identity
-from test_work_doi import collection
+from test_work_doi import collection  # noqa: F401 (pytest fixture)
 
 
 COCHRANE = "The Cochrane Collaboration's tool for assessing risk of bias in randomised trials"
@@ -116,7 +116,7 @@ def test_missing_title_never_confirms_identity():
     assert identity._select_work([{"_id": "missing", "titles": []}], titles(COCHRANE), True) is None
 
 
-def test_distinct_titles_same_doi_are_idempotent_and_isolated(collection):
+def test_distinct_titles_same_doi_are_idempotent_and_isolated(collection):  # noqa: F811
     doi = "https://doi.org/10.1136/bmj.d5928"
     original = {"doi": doi, "titles": titles(COCHRANE), "authors": [{"id": "original-author"}]}
     imported = {"doi": doi, "titles": titles(EXTRACTS), "authors": [{"id": "ciarp-author"}]}
@@ -130,7 +130,7 @@ def test_distinct_titles_same_doi_are_idempotent_and_isolated(collection):
     assert collection.count_documents({"_doi_key": {"$exists": True}}) == 0
 
 
-def test_concurrent_doi_inserts_keep_distinct_titles_in_separate_works(collection):
+def test_concurrent_doi_inserts_keep_distinct_titles_in_separate_works(collection):  # noqa: F811
     def write(index):
         entry = {"doi": "https://doi.org/10.1136/bmj.d5928",
                  "titles": titles(COCHRANE if index % 2 else EXTRACTS)}

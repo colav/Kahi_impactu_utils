@@ -15,8 +15,7 @@ URL_SOURCE_RULES = (
     ("dialnet", lambda host, path: host == "dialnet.unirioja.es"),
     ("redalyc", lambda host, path: "redalyc.org" in host),
     ("arxiv", lambda host, path: host == "arxiv.org"),
-    ("pmc", lambda host, path: (host == "ncbi.nlm.nih.gov" and path.startswith("/pmc"))
-     or host == "pmc.ncbi.nlm.nih.gov" or host == "europepmc.org"),
+    ("pmc", lambda host, path: (host == "ncbi.nlm.nih.gov" and path.startswith("/pmc")) or host == "pmc.ncbi.nlm.nih.gov" or host == "europepmc.org"),
 )
 
 

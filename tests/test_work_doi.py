@@ -1,7 +1,7 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from threading import Barrier, local
+from threading import Barrier
 from threading import Event
 from time import sleep
 from unittest.mock import MagicMock
@@ -199,8 +199,8 @@ def test_openalex_source_and_doi_conflict_stops_without_modification(collection,
     update = MagicMock()
     monkeypatch.setattr(oa, "process_one_update", update)
     oa.process_one({"doi": "10.4000/second", "id": "W1", "title": "Work"},
-                       {"database_name": collection.database.name}, {},
-                       collection.database.client, None, "threading")
+                   {"database_name": collection.database.name}, {},
+                   collection.database.client, None, "threading")
     update.assert_not_called()
     assert list(collection.find()) == before
 
